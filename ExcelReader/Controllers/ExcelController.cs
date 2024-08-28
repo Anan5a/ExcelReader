@@ -1,11 +1,10 @@
-﻿using DataAccess.IRepository;
+﻿using ClosedXML.Extensions;
+using DataAccess.IRepository;
 using ExcelReader.Models;
 using ExcelReader.Services;
-using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.OpenApi.Any;
 using System.Data;
-using System.IO;
+using System.Linq;
 
 namespace ExcelReader.Controllers
 {
@@ -75,7 +74,7 @@ namespace ExcelReader.Controllers
 
             //read excel
 
-            var excelData = ExcelService.ReadExcelFile(filePath);
+            var excelData = ExcelService2.ReadExcelFile(filePath);
 
             if (excelData == null)
             {
@@ -95,7 +94,7 @@ namespace ExcelReader.Controllers
             foreach (DataRow row in excelData.Rows)
             {
                 //skip empty rows or label row
-                if (row[0].ToString().Equals("UUID") || string.IsNullOrEmpty(row[0].ToString()) || string.IsNullOrEmpty(row[1].ToString()) || string.IsNullOrEmpty(row[2].ToString()))
+                if (string.IsNullOrEmpty(row[0].ToString()) || string.IsNullOrEmpty(row[1].ToString()) || string.IsNullOrEmpty(row[2].ToString()))
                 {
                     skippedRows++;
                     totalRows++;
@@ -104,7 +103,7 @@ namespace ExcelReader.Controllers
                 var user = new User { UUID = row[0].ToString(), Email = row[2].ToString(), Name = row[1].ToString(), CreatedAt = DateTime.Now };
                 totalRows++;
                 var id = _userRepository.Add(user);
-                if ( id == 0)
+                if (id == 0)
                 {
                     //failed to add
                     failedCount++;
@@ -126,5 +125,32 @@ namespace ExcelReader.Controllers
             });
         }
 
+        [HttpPost]
+        [Route("export")]
+        public async Task<ActionResult> Export()
+        {
+            //export all data from database table to a excel file
+            var allEntry = _userRepository.GetAll();
+            IList<string> columns = new List<string> { "UUID", "Name", "Email", "CreatedAt" };
+
+
+            var filtered = allEntry
+                .Select(user => new User(
+                    user.UUID,
+                    user.Name,
+                    user.Email,
+                    user.CreatedAt
+                ));
+            var fileName = Guid.NewGuid().ToString() + ".xlsx";
+            string baseFilePath = _webHostEnvironment.WebRootPath;
+            string filePath2 = Path.Combine("exports", fileName);
+            var filePath = Path.Combine(baseFilePath, filePath2);
+
+            var wb = ExcelService2.WriteExcelFile(columns, filtered, filePath);
+            var fileStream = new FileStream(filePath, FileMode.Open, FileAccess.Read);
+
+            // Return the file as a downloadable response
+            return File(fileStream, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "report_all_users.xlsx");
+        }
     }
 }

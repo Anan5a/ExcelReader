@@ -19,6 +19,13 @@ namespace ExcelReader.Models
         [ValidateNever]
         [BindNever]
         public DateTime CreatedAt { get; set; }
-       
+        public User(string uuid, string name, string email, DateTime createdAt)
+        {
+            UUID = uuid;
+            Name = name;
+            Email = email;
+            CreatedAt = createdAt;
+        }
+        public User() { }   
     }
 }
