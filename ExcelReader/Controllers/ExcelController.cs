@@ -8,6 +8,8 @@ using System.Linq;
 
 namespace ExcelReader.Controllers
 {
+    /*
+
     [Route("api/[controller]")]
     [ApiController]
     public class ExcelController : Controller
@@ -153,4 +155,5 @@ namespace ExcelReader.Controllers
             return File(fileStream, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "report_all_users.xlsx");
         }
     }
+    */
 }

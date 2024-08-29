@@ -1,4 +1,5 @@
 ﻿using DataAccess.IRepository;
+using ExcelReader.Services;
 using Microsoft.Data.SqlClient;
 
 namespace DataAccess
@@ -32,6 +33,7 @@ namespace DataAccess
             }
             catch (Exception ex)
             {
+                ErrorConsole.console(ex.Message);
                 return 0;
             }
 
@@ -56,21 +58,22 @@ namespace DataAccess
             }
             catch (Exception ex)
             {
+                ErrorConsole.console(ex.Message);
                 return 0;
             }
         }
 
-        public int Add(T entity)
+        public ulong Add(T entity)
         {
             throw new NotImplementedException("Must implement specific logic in the repository");
         }
 
-        public IEnumerable<T> GetAll(Dictionary<string, dynamic>? condition = null)
+        public IEnumerable<T> GetAll(Dictionary<string, dynamic>? condition = null, bool resolveRelation = false    )
         {
             throw new NotImplementedException("Must implement specific logic in the repository");
         }
 
-        public T? Get(Dictionary<string, dynamic> condition)
+        public T? Get(Dictionary<string, dynamic> condition, bool resolveRelation = false)
         {
             throw new NotImplementedException("Must implement specific logic in the repository");
         }

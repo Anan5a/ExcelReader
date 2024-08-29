@@ -1,0 +1,11 @@
+login screen
+3-4 tiles
+1. excels (list of excels)   [x]
+2. upload, (with option for name) [x]
+3. add user (for admin), super admin
+4. My profile
+
+new user by super-> select role(admin,general user)
+name,email,password (send email)
+user profile (change password only)
+login options: gmail (in frontend)

@@ -1,5 +1,8 @@
 using DataAccess.IRepository;
 using DataAccess;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -25,10 +28,28 @@ builder.Services.AddScoped<IUserRepository, UserRepository>();
 
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowAnyOrigin",
+    options.AddPolicy("AllowLocalDevOrigin",
         builder => builder.WithOrigins("http://127.0.0.1:4200")
                           .AllowAnyMethod()
                           .AllowAnyHeader());
+});
+
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+}).AddJwtBearer(options =>
+{
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuer = true,
+        ValidateAudience = true,
+        ValidateLifetime = true,
+        ValidateIssuerSigningKey = true,
+        ValidIssuer = builder.Configuration["JwtAuthConfig:Issuer"],
+        ValidAudience = builder.Configuration["JwtAuthConfig:Audience"],
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["JwtAuthConfig:SigningKey"]))
+    };
 });
 
 
@@ -41,10 +62,11 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
-app.UseCors("AllowAnyOrigin");
+app.UseCors("AllowLocalDevOrigin");
 
 app.UseHttpsRedirection();
-
+app.UseStaticFiles();
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
