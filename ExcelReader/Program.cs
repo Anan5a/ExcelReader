@@ -1,5 +1,8 @@
-using DataAccess.IRepository;
 using DataAccess;
+using DataAccess.IRepository;
+using ExcelReader.DataAccess;
+using ExcelReader.DataAccess.IRepository;
+using ExcelReader.Utility;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
@@ -24,6 +27,7 @@ builder.Services.AddSingleton<IMyDbConnection>(provider =>
 });
 
 builder.Services.AddScoped<IUserRepository, UserRepository>();
+builder.Services.AddScoped<IFileMetadataRepository, FileMetadataRepository>();
 
 
 builder.Services.AddCors(options =>
@@ -51,7 +55,17 @@ builder.Services.AddAuthentication(options =>
         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["JwtAuthConfig:SigningKey"]))
     };
 });
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("AdminPolicy", policy =>
+        policy.RequireRole(UserRoles.Admin));
 
+    options.AddPolicy("UserPolicy", policy =>
+        policy.RequireRole(UserRoles.User));
+
+    options.AddPolicy("SuperAdminPolicy", policy =>
+        policy.RequireRole(UserRoles.SuperAdmin));
+});
 
 
 var app = builder.Build();

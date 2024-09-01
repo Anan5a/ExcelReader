@@ -1,52 +1,56 @@
-﻿namespace ExcelReader.Services
+﻿using ExcelReader.Models;
+using Microsoft.OpenApi.Any;
+
+namespace ExcelReader.Services
 {
     public class CustomResponseMessage
     {
         public static object NotFound()
         {
-            return new
+            return new ResponseModel<string?>
             {
-                status = "error",
-                error = "Not Found",
-                message = "The resource was not found"
+                Status = "error",
+                Error = "Not Found",
+                Message = "The resource was not found"
             };
         }
 
         public static object Unauthorized()
         {
-            return new
+            return new ResponseModel<string?>
             {
-                status = "error",
-                error = "Unauthorized",
-                message = "You are not authorized to access this resource"
+                Status = "error",
+                Error = "Unauthorized",
+                Message = "You are not authorized to access this resource"
             };
         }
 
         public static object InternalServerError()
         {
-            return new
+            return new ResponseModel<string?>
             {
-                status = "error",
-                error = "Internal Server Error",
-                message = "An unexpected error occurred while processing the request"
+                Status = "error",
+                Error = "Internal Server Error",
+                Message = "An unexpected error occurred while processing the request"
             };
         }
         public static object ErrorCustom(string error, string message)
         {
-            return new
+            return new ResponseModel<string?>
             {
-                status = "error",
-                error = $"{error}",
-                message = $"{message}"
+                Status = "error",
+                Error = $"{error}",
+                Message = $"{message}"
             };
         }
 
-        public static object OkCustom(string message)
+        public static object OkCustom<T>(string message, T data)
         {
-            return new
+            return new ResponseModel<T>
             {
-                status="ok",
-                message = $"{message}"
+                Status = "ok",
+                Message = $"{message}",
+                Data = data
             };
         }
 

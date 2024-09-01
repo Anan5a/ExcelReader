@@ -3,7 +3,7 @@ using ExcelReader.Models;
 
 namespace ExcelReader.DataAccess.IRepository
 {
-    public interface IFileMetadataRepository: IRepository<FileMetadata>
+    public interface IFileMetadataRepository : IRepository<FileMetadata>
     {
         new ulong Add(FileMetadata fileMetadata);
         new IEnumerable<FileMetadata> GetAll(Dictionary<string, dynamic>? condition, bool resolveRelation = false);
@@ -11,5 +11,7 @@ namespace ExcelReader.DataAccess.IRepository
         new FileMetadata? Update(FileMetadata fileMetadata);
         int Remove(int id);
         int RemoveRange(List<int> Ids);
+        ulong Count(Dictionary<string, dynamic>? condition = null);
+
     }
 }

@@ -6,7 +6,7 @@ namespace ExcelReader.Models
     public class FileMetadata
     {
         [Key]
-        [BindNever] 
+        [BindNever]
         public long Id { get; set; }
 
         [Required]
@@ -19,15 +19,15 @@ namespace ExcelReader.Models
 
         [Required]
         //todo: rename to user_id
-        public long FileOwner { get; set; }
+        public long UserId { get; set; }
 
         [Required]
         [BindNever]
         public DateTime CreatedAt { get; set; }
-        
+
         [BindNever]
         public DateTime? UpdatedAt { get; set; }
-        
+
         [BindNever]
         public DateTime? DeletedAt { get; set; }
 
@@ -42,12 +42,12 @@ namespace ExcelReader.Models
             Id = id;
             FileName = fileName;
             FileNameSystem = fileNameSystem;
-            FileOwner = fileOwner;
+            UserId = fileOwner;
             CreatedAt = createdAt;
             UpdatedAt = updatedAt;
             DeletedAt = deletedAt;
             User = user;
-            
+
         }
     }
 

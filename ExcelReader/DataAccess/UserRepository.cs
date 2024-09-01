@@ -77,37 +77,40 @@ namespace DataAccess
             }
             catch (Exception ex)
             {
-                ErrorConsole.console(ex.Message);
+                ErrorConsole.Log(ex.Message);
                 return 0;
             }
         }
         public new IEnumerable<User> GetAll(Dictionary<string, dynamic>? condition = null, bool resolveRelation = false)
         {
             List<User> users = new List<User>();
-            using (SqlConnection connection = new SqlConnection(dbConnection.ConnectionString))
+
+            try
             {
-                connection.Open();
-
-                StringBuilder whereClause = new StringBuilder();
-                List<SqlParameter> parameters = new List<SqlParameter>();
-                if (condition != null)
+                using (SqlConnection connection = new SqlConnection(dbConnection.ConnectionString))
                 {
-                    foreach (var pair in condition)
+                    connection.Open();
+
+                    StringBuilder whereClause = new StringBuilder();
+                    List<SqlParameter> parameters = new List<SqlParameter>();
+                    if (condition != null)
                     {
-                        if (whereClause.Length > 0)
-                            whereClause.Append(" AND ");
+                        foreach (var pair in condition)
+                        {
+                            if (whereClause.Length > 0)
+                                whereClause.Append(" AND ");
 
-                        whereClause.Append($"u.[{pair.Key}] = @{pair.Key}");
-                        parameters.Add(new SqlParameter($"@{pair.Key}", pair.Value));
+                            whereClause.Append($"u.[{pair.Key}] = @{pair.Key}");
+                            parameters.Add(new SqlParameter($"@{pair.Key}", pair.Value));
+                        }
                     }
-                }
 
-                // Constructing the query
-                string query;
-                if (resolveRelation)
-                {
+                    // Constructing the query
+                    string query;
+                    if (resolveRelation)
+                    {
 
-                    query = $@"
+                        query = $@"
                 SELECT u.[id] as Id, 
                        u.[name] as Name, 
                        u.[email] as Email, 
@@ -122,10 +125,10 @@ namespace DataAccess
                        r.[role_name] as RoleName
                 FROM [{tableName}] u
                 INNER JOIN [roles] r ON u.[role_id] = r.[id]";
-                }
-                else
-                {
-                    query = $@"
+                    }
+                    else
+                    {
+                        query = $@"
                 SELECT u.[id] as Id, 
                        u.[name] as Name, 
                        u.[email] as Email, 
@@ -138,77 +141,82 @@ namespace DataAccess
                        u.[verified_at] as VerifiedAt, 
                        u.[status] as Status,
                 FROM [{tableName}] u";
-                }
+                    }
 
-                if (whereClause.Length > 0)
-                {
-                    query += $" WHERE {whereClause}";
-                }
-
-                using (SqlCommand command = new SqlCommand(query, connection))
-                {
-                    command.Parameters.AddRange(parameters.ToArray());
-
-                    using (SqlDataAdapter adapter = new SqlDataAdapter(command))
+                    if (whereClause.Length > 0)
                     {
-                        DataTable dataTable = new DataTable();
-                        adapter.Fill(dataTable);
+                        query += $" WHERE {whereClause}";
+                    }
 
-                        foreach (DataRow row in dataTable.Rows)
+                    using (SqlCommand command = new SqlCommand(query, connection))
+                    {
+                        command.Parameters.AddRange(parameters.ToArray());
+
+                        using (SqlDataAdapter adapter = new SqlDataAdapter(command))
                         {
-                            User user = new User
-                            {
-                                Id = Convert.ToInt64(row["Id"]),
-                                Name = Convert.ToString(row["Name"]),
-                                Email = Convert.ToString(row["Email"]),
-                                Password = Convert.ToString(row["Password"]),
-                                CreatedAt = Convert.ToDateTime(row["CreatedAt"]),
-                                UpdatedAt = row["UpdatedAt"] == DBNull.Value ? (DateTime?)null : Convert.ToDateTime(row["UpdatedAt"]),
-                                DeletedAt = row["DeletedAt"] == DBNull.Value ? (DateTime?)null : Convert.ToDateTime(row["DeletedAt"]),
-                                RoleId = Convert.ToInt64(row["RoleId"]),
-                                PasswordResetId = row["PasswordResetId"] == DBNull.Value ? null : Convert.ToString(row["PasswordResetId"]),
-                                VerifiedAt = row["VerifiedAt"] == DBNull.Value ? (DateTime?)null : Convert.ToDateTime(row["VerifiedAt"]),
-                                Status = Convert.ToString(row["Status"]),
-                            };
+                            DataTable dataTable = new DataTable();
+                            adapter.Fill(dataTable);
 
-                            if (resolveRelation)
+                            foreach (DataRow row in dataTable.Rows)
                             {
-                                user.Role = new Role
+                                User user = new User
                                 {
-                                    Id = user.RoleId,
-                                    RoleName = Convert.ToString(row["RoleName"]),
+                                    Id = Convert.ToInt64(row["Id"]),
+                                    Name = Convert.ToString(row["Name"]),
+                                    Email = Convert.ToString(row["Email"]),
+                                    Password = Convert.ToString(row["Password"]),
+                                    CreatedAt = Convert.ToDateTime(row["CreatedAt"]),
+                                    UpdatedAt = row["UpdatedAt"] == DBNull.Value ? (DateTime?)null : Convert.ToDateTime(row["UpdatedAt"]),
+                                    DeletedAt = row["DeletedAt"] == DBNull.Value ? (DateTime?)null : Convert.ToDateTime(row["DeletedAt"]),
+                                    RoleId = Convert.ToInt64(row["RoleId"]),
+                                    PasswordResetId = row["PasswordResetId"] == DBNull.Value ? null : Convert.ToString(row["PasswordResetId"]),
+                                    VerifiedAt = row["VerifiedAt"] == DBNull.Value ? (DateTime?)null : Convert.ToDateTime(row["VerifiedAt"]),
+                                    Status = Convert.ToString(row["Status"]),
                                 };
-                            }
 
-                            users.Add(user);
+                                if (resolveRelation)
+                                {
+                                    user.Role = new Role
+                                    {
+                                        Id = user.RoleId,
+                                        RoleName = Convert.ToString(row["RoleName"]),
+                                    };
+                                }
+
+                                users.Add(user);
+                            }
                         }
                     }
                 }
             }
+            catch (Exception ex) { ErrorConsole.Log(ex.Message); }
+
             return users;
         }
 
         public new User? Get(Dictionary<string, dynamic> condition, bool resolveRelation = false)
         {
             User? user = null;
-            using (SqlConnection connection = new SqlConnection(dbConnection.ConnectionString))
+            try
             {
-                connection.Open();
-                StringBuilder whereClause = new StringBuilder();
-                List<SqlParameter> parameters = new List<SqlParameter>();
-                foreach (var pair in condition)
+                using (SqlConnection connection = new SqlConnection(dbConnection.ConnectionString))
                 {
-                    if (whereClause.Length > 0)
-                        whereClause.Append(" AND ");
+                    connection.Open();
+                    StringBuilder whereClause = new StringBuilder();
+                    List<SqlParameter> parameters = new List<SqlParameter>();
+                    foreach (var pair in condition)
+                    {
+                        if (whereClause.Length > 0)
+                            whereClause.Append(" AND ");
 
-                    whereClause.Append($"u.[{pair.Key}] = @{pair.Key}");
-                    parameters.Add(new SqlParameter($"@{pair.Key}", pair.Value));
-                }
+                        whereClause.Append($"u.[{pair.Key}] = @{pair.Key}");
+                        parameters.Add(new SqlParameter($"@{pair.Key}", pair.Value));
+                    }
 
-                string query;
-                if (resolveRelation)
-                {
-                    query = $@"
+                    string query;
+                    if (resolveRelation)
+                    {
+                        query = $@"
                 SELECT u.[id] as Id, 
                        u.[name] as Name, 
                        u.[email] as Email, 
@@ -221,13 +229,13 @@ namespace DataAccess
                        u.[verified_at] as VerifiedAt, 
                        u.[status] as Status,
                        r.[role_name] as RoleName
-                FROM [{{tableName}}] u
+                FROM [{tableName}] u
                 INNER JOIN [roles] r ON u.[role_id] = r.[id]
                 WHERE " + whereClause;
-                }
-                else
-                {
-                    query = $@"
+                    }
+                    else
+                    {
+                        query = $@"
                 SELECT u.[id] as Id, 
                        u.[name] as Name, 
                        u.[email] as Email, 
@@ -241,53 +249,58 @@ namespace DataAccess
                        u.[status] as Status,
                 FROM [{tableName}] u
                 WHERE " + whereClause;
-                }
+                    }
 
-                using (SqlCommand command = new SqlCommand(query, connection))
-                {
-                    command.Parameters.AddRange(parameters.ToArray());
-
-                    using (SqlDataReader reader = command.ExecuteReader())
+                    using (SqlCommand command = new SqlCommand(query, connection))
                     {
-                        if (reader.Read())
-                        {
-                            user = new User
-                            {
-                                Id = Convert.ToInt64(reader["Id"]),
-                                Name = Convert.ToString(reader["Name"]),
-                                Email = Convert.ToString(reader["Email"]),
-                                Password = Convert.ToString(reader["Password"]),
-                                CreatedAt = Convert.ToDateTime(reader["CreatedAt"]),
-                                UpdatedAt = reader["UpdatedAt"] == DBNull.Value ? (DateTime?)null : Convert.ToDateTime(reader["UpdatedAt"]),
-                                DeletedAt = reader["DeletedAt"] == DBNull.Value ? (DateTime?)null : Convert.ToDateTime(reader["DeletedAt"]),
-                                RoleId = Convert.ToInt64(reader["RoleId"]),
-                                PasswordResetId = reader["PasswordResetId"] == DBNull.Value ? null : Convert.ToString(reader["PasswordResetId"]),
-                                VerifiedAt = reader["VerifiedAt"] == DBNull.Value ? (DateTime?)null : Convert.ToDateTime(reader["VerifiedAt"]),
-                                Status = Convert.ToString(reader["Status"]),
-                            };
+                        command.Parameters.AddRange(parameters.ToArray());
 
-                            if (resolveRelation)
+                        using (SqlDataReader reader = command.ExecuteReader())
+                        {
+                            if (reader.Read())
                             {
-                                user.Role = new Role
+                                user = new User
                                 {
-                                    Id = user.RoleId,
-                                    RoleName = Convert.ToString(reader["RoleName"]),
+                                    Id = Convert.ToInt64(reader["Id"]),
+                                    Name = Convert.ToString(reader["Name"]),
+                                    Email = Convert.ToString(reader["Email"]),
+                                    Password = Convert.ToString(reader["Password"]),
+                                    CreatedAt = Convert.ToDateTime(reader["CreatedAt"]),
+                                    UpdatedAt = reader["UpdatedAt"] == DBNull.Value ? (DateTime?)null : Convert.ToDateTime(reader["UpdatedAt"]),
+                                    DeletedAt = reader["DeletedAt"] == DBNull.Value ? (DateTime?)null : Convert.ToDateTime(reader["DeletedAt"]),
+                                    RoleId = Convert.ToInt64(reader["RoleId"]),
+                                    PasswordResetId = reader["PasswordResetId"] == DBNull.Value ? null : Convert.ToString(reader["PasswordResetId"]),
+                                    VerifiedAt = reader["VerifiedAt"] == DBNull.Value ? (DateTime?)null : Convert.ToDateTime(reader["VerifiedAt"]),
+                                    Status = Convert.ToString(reader["Status"]),
                                 };
+
+                                if (resolveRelation)
+                                {
+                                    user.Role = new Role
+                                    {
+                                        Id = user.RoleId,
+                                        RoleName = Convert.ToString(reader["RoleName"]),
+                                    };
+                                }
                             }
                         }
                     }
                 }
             }
+            catch (Exception ex) { ErrorConsole.Log(ex.Message); }
+
             return user;
         }
 
 
         public new User? Update(User existingUser)
         {
-            using (SqlConnection connection = new SqlConnection(dbConnection.ConnectionString))
+            try
             {
-                connection.Open();
-                string query = $@"
+                using (SqlConnection connection = new SqlConnection(dbConnection.ConnectionString))
+                {
+                    connection.Open();
+                    string query = $@"
                     UPDATE [{tableName}]
                     SET [name] = @Name, 
                         [email] = @Email, 
@@ -299,31 +312,42 @@ namespace DataAccess
                         [verified_at] = @VerifiedAt, 
                         [status] = @Status
                     WHERE [id] = @Id";
-                 
-                using (SqlCommand command = new SqlCommand(query, connection))
-                {
-                    command.Parameters.AddWithValue("@Name", existingUser.Name ?? (object)DBNull.Value);
-                    command.Parameters.AddWithValue("@Email", existingUser.Email ?? (object)DBNull.Value);
-                    command.Parameters.AddWithValue("@Password", existingUser.Password ?? (object)DBNull.Value);
-                    command.Parameters.AddWithValue("@UpdatedAt", existingUser.UpdatedAt ?? (object)DBNull.Value);
-                    command.Parameters.AddWithValue("@DeletedAt", existingUser.DeletedAt ?? (object)DBNull.Value);
-                    command.Parameters.AddWithValue("@RoleId", existingUser.RoleId);
-                    command.Parameters.AddWithValue("@PasswordResetId", existingUser.PasswordResetId ?? (object)DBNull.Value);
-                    command.Parameters.AddWithValue("@VerifiedAt", existingUser.VerifiedAt ?? (object)DBNull.Value);
-                    command.Parameters.AddWithValue("@Status", existingUser.Status ?? (object)DBNull.Value);
-                    command.Parameters.AddWithValue("@Id", existingUser.Id);
 
-                    int rowsAffected = command.ExecuteNonQuery();
-
-                    if (rowsAffected == 0)
+                    using (SqlCommand command = new SqlCommand(query, connection))
                     {
-                        return null;
+                        command.Parameters.AddWithValue("@Name", existingUser.Name ?? (object)DBNull.Value);
+                        command.Parameters.AddWithValue("@Email", existingUser.Email ?? (object)DBNull.Value);
+                        command.Parameters.AddWithValue("@Password", existingUser.Password ?? (object)DBNull.Value);
+                        command.Parameters.AddWithValue("@UpdatedAt", existingUser.UpdatedAt ?? (object)DBNull.Value);
+                        command.Parameters.AddWithValue("@DeletedAt", existingUser.DeletedAt ?? (object)DBNull.Value);
+                        command.Parameters.AddWithValue("@RoleId", existingUser.RoleId);
+                        command.Parameters.AddWithValue("@PasswordResetId", existingUser.PasswordResetId ?? (object)DBNull.Value);
+                        command.Parameters.AddWithValue("@VerifiedAt", existingUser.VerifiedAt ?? (object)DBNull.Value);
+                        command.Parameters.AddWithValue("@Status", existingUser.Status ?? (object)DBNull.Value);
+                        command.Parameters.AddWithValue("@Id", existingUser.Id);
+
+                        int rowsAffected = command.ExecuteNonQuery();
+
+                        if (rowsAffected == 0)
+                        {
+                            return null;
+                        }
                     }
                 }
+
+                return existingUser;
+            }
+            catch (Exception ex)
+            {
+                ErrorConsole.Log(ex.Message);
+                return null;
             }
 
-            return existingUser;
         }
 
+        public ulong Count(Dictionary<string, dynamic>? condition = null)
+        {
+            return base.Count(tableName, condition);
+        }
     }
 }

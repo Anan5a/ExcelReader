@@ -2,10 +2,10 @@
 {
     public class ErrorConsole
     {
-        public static void console(string message)
+        public static void Log(string message)
         {
             Console.ForegroundColor = ConsoleColor.Red;
-            Console.WriteLine($"Error: {message}");
+            Console.WriteLine($"{DateTime.Now.ToString()}: Error: {message}");
             Console.ResetColor();
 
         }
