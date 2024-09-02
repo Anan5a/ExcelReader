@@ -15,7 +15,7 @@ namespace ExcelReader.Controllers
     [Route("api/[controller]")]
     [ApiController]
     [Authorize(Roles = "admin,user,super_admin")]
-    public class ExcelController : Controller
+    public class FileController : Controller
     {
         private readonly string[] AllowedExtensions = { ".xls", ".xlsx" };
         private long MAX_UPLOAD_SIZE = 2_000_000; //bytes
@@ -27,7 +27,7 @@ namespace ExcelReader.Controllers
         private readonly IConfiguration _configuration;
 
 
-        public ExcelController(
+        public FileController(
             IWebHostEnvironment webHostEnvironment,
             IUserRepository userRepository,
             IFileMetadataRepository fileMetadataRepository,
@@ -38,6 +38,23 @@ namespace ExcelReader.Controllers
             _fileMetadataRepository = fileMetadataRepository;
             _configuration = configuration;
         }
+
+        [HttpGet]
+        [Route("list")]
+        [Authorize(Roles = "user, admin, super_admin")]
+
+        public async Task<ActionResult<ResponseModel<IEnumerable<FileMetadata>>>> ListFiles([FromQuery] string? page)
+        {
+            long.TryParse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var userId);
+
+            Dictionary<string, dynamic> condition = new Dictionary<string, dynamic>();
+            condition["user_id"] = userId;
+            var list = _fileMetadataRepository.GetAll(condition);
+
+            return Ok(CustomResponseMessage.OkCustom<IEnumerable<FileMetadata>>("Query successful.", list));
+
+        }
+
 
 
         [HttpPost]
@@ -51,14 +68,14 @@ namespace ExcelReader.Controllers
                 return BadRequest();
             }
 
-            if (uploadDto.excelFile == null)
+            if (uploadDto.ExcelFile == null)
             {
                 return BadRequest();
             }
             //check file type
             long.TryParse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var userId);
 
-            var fileExtension = Path.GetExtension(uploadDto.excelFile.FileName).ToLower();
+            var fileExtension = Path.GetExtension(uploadDto.ExcelFile.FileName).ToLower();
 
             if (!AllowedExtensions.Contains(fileExtension))
             {
@@ -66,13 +83,13 @@ namespace ExcelReader.Controllers
             }
 
 
-            if (uploadDto.excelFile.Length > MAX_UPLOAD_SIZE)
+            if (uploadDto.ExcelFile.Length > MAX_UPLOAD_SIZE)
             {
                 return BadRequest();
             }
 
             var fileNameUUID = Guid.NewGuid().ToString();
-            var fileNameOriginal = uploadDto.FileName ?? Path.GetFileNameWithoutExtension(uploadDto.excelFile.FileName);
+            var fileNameOriginal = uploadDto.FileName ?? Path.GetFileNameWithoutExtension(uploadDto.ExcelFile.FileName);
             string fileNameSystem = fileNameUUID + fileExtension;
 
             string baseFileDirectory = _webHostEnvironment.WebRootPath;
@@ -83,7 +100,7 @@ namespace ExcelReader.Controllers
             //save file
             using (var stream = new FileStream(filePathDisk, FileMode.Create))
             {
-                await uploadDto.excelFile.CopyToAsync(stream);
+                await uploadDto.ExcelFile.CopyToAsync(stream);
             }
             //add to database
 

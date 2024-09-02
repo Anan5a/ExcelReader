@@ -50,6 +50,40 @@ namespace ExcelReader.Controllers
             return Ok(CustomResponseMessage.OkCustom<object>("Successful query", new { fileCount = userFileCount }));
         }
 
+
+        [HttpPost]
+        [Route("change-password")]
+        [Authorize(Roles = "user, admin, super_admin")]
+        public async Task<ActionResult> ChangePassword([FromBody] ChangePasswordDTO changePasswordDTO)
+        {
+            //get authenticate user's Dashboard
+            //if (User.Identity != null && !User.Identity.IsAuthenticated)
+            //{
+
+            //}
+            long.TryParse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var userId);
+
+            //find user and user files
+            Dictionary<string, dynamic> condition = new Dictionary<string, dynamic>();
+            condition["id"] = userId;
+
+            var user = _userRepository.Get(condition);
+            if (user == null)
+            {
+                return NotFound(CustomResponseMessage.ErrorCustom("Not found", "User was not found!"));
+            }
+
+
+            //verify old password
+
+            if (!PasswordManager.VerifyPassword(changePasswordDTO.oldPassword, user.Password))
+            {
+                return Forbid(CustomResponseMessage.ErrorCustom("", ""));
+            }
+
+
+            return Ok(CustomResponseMessage.OkCustom<object>("Successful query", new { fileCount = userFileCount }));
+        }
         [HttpPost]
         [Route("login")]
         public async Task<ActionResult<ResponseModel<AuthResponse>>> Login([FromBody] UserLoginDTO loginDto)
