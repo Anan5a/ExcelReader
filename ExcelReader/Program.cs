@@ -28,6 +28,7 @@ builder.Services.AddSingleton<IMyDbConnection>(provider =>
 
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IFileMetadataRepository, FileMetadataRepository>();
+builder.Services.AddScoped<IRoleRepository, RoleRepository>();
 
 
 builder.Services.AddCors(options =>

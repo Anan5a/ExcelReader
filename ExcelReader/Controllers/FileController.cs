@@ -49,6 +49,7 @@ namespace ExcelReader.Controllers
 
             Dictionary<string, dynamic> condition = new Dictionary<string, dynamic>();
             condition["user_id"] = userId;
+            condition["deleted_at"] = null;
             var list = _fileMetadataRepository.GetAll(condition);
 
             return Ok(CustomResponseMessage.OkCustom<IEnumerable<FileMetadata>>("Query successful.", list));
@@ -132,6 +133,51 @@ namespace ExcelReader.Controllers
         }
 
 
+
+        [HttpPost]
+        [Route("update")]
+        [Authorize(Roles = "user, admin, super_admin")]
+
+        public async Task<ActionResult<ResponseModel<ulong?>>> Update([FromBody] EditFileDTO editFileDto)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest();
+            }
+
+            //check file type
+            long.TryParse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var userId);
+            Dictionary<string, dynamic> condition = new Dictionary<string, dynamic>();
+            condition["user_id"] = userId;
+            condition["id"] = editFileDto.fileId;
+
+            var existingFile = _fileMetadataRepository.Get(condition);
+
+            if (existingFile == null)
+            {
+                return NotFound(CustomResponseMessage.ErrorCustom("no file", "File not found by the user"));
+
+            }
+
+            var fileExtension = Path.GetExtension(existingFile.FileNameSystem).ToLower();
+            var fileNameUser = Path.GetFileNameWithoutExtension(editFileDto.FileName);
+            existingFile.FileName = fileNameUser + fileExtension;
+            existingFile.UpdatedAt = DateTime.Now;
+
+
+            if (_fileMetadataRepository.Update(existingFile) != null)
+            {
+                return Ok(CustomResponseMessage.OkCustom<string>("File updated.", "File name was changed successfully."));
+            }
+
+
+            return BadRequest(CustomResponseMessage.ErrorCustom("Bad Request", "Failed to update file, try again later"));
+        }
+
+
+
+
+
         [HttpPost]
         [Route("download-link")]
         [Authorize(Roles = "user, admin, super_admin")]
@@ -200,10 +246,55 @@ namespace ExcelReader.Controllers
             string fileDirectory = Path.Combine(baseFileDirectory, "uploads");
             var filePathDisk = Path.Combine(fileDirectory, fileId);
 
+            if (!System.IO.File.Exists(filePathDisk))
+            {
+                return NotFound(CustomResponseMessage.ErrorCustom("Not Found", "No file was found in the system"));
+            }
+
+
+
             var fileStream = new FileStream(filePathDisk, FileMode.Open, FileAccess.Read);
             return File(fileStream, "application/octet-stream", filename);
         }
 
+
+        [HttpDelete]
+        [Route("delete/{fileId}")]
+        [Authorize(Roles = "user, admin, super_admin")]
+
+        public async Task<ActionResult<ResponseModel<string?>>> DeleteFile(long fileId)
+        {
+            long.TryParse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var userId);
+
+            Dictionary<string, dynamic> condition = new Dictionary<string, dynamic>();
+            condition["user_id"] = userId;
+            condition["id"] = fileId;
+
+            var fileToDelete = _fileMetadataRepository.Get(condition);
+
+            if (fileToDelete == null)
+            {
+                return NotFound(CustomResponseMessage.ErrorCustom("Not Found", "No file was found for the user"));
+            }
+            string baseFileDirectory = _webHostEnvironment.WebRootPath;
+            string fileDirectory = Path.Combine(baseFileDirectory, "uploads");
+            var filePathDisk = Path.Combine(fileDirectory, fileToDelete.FileNameSystem);
+            ///////// Generate a signature /////////
+
+            fileToDelete.DeletedAt = DateTime.Now;
+
+            if (_fileMetadataRepository.Update(fileToDelete) == null)
+            {
+                return BadRequest(CustomResponseMessage.ErrorCustom("bad request", "Unable to delete file, try later."));
+            }
+
+            System.IO.File.Delete(filePathDisk);
+
+
+            return Ok(CustomResponseMessage.OkCustom<string>("delete ok", "File deleted from server."));
+
+
+        }
     }
 
 }

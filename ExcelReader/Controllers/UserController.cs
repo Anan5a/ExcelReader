@@ -35,7 +35,7 @@ namespace ExcelReader.Controllers
         public async Task<ActionResult<ResponseModel<object>>> Dashboard()
         {
             //get authenticate user's Dashboard
-            //if (User.Identity != null && !User.Identity.IsAuthenticated)
+            //if (Role.Identity != null && !Role.Identity.IsAuthenticated)
             //{
 
             //}
@@ -54,10 +54,10 @@ namespace ExcelReader.Controllers
         [HttpPost]
         [Route("change-password")]
         [Authorize(Roles = "user, admin, super_admin")]
-        public async Task<ActionResult> ChangePassword([FromBody] ChangePasswordDTO changePasswordDTO)
+        public async Task<ActionResult<ResponseModel<string?>>> ChangePassword([FromBody] ChangePasswordDTO changePasswordDTO)
         {
             //get authenticate user's Dashboard
-            //if (User.Identity != null && !User.Identity.IsAuthenticated)
+            //if (Role.Identity != null && !Role.Identity.IsAuthenticated)
             //{
 
             //}
@@ -68,6 +68,7 @@ namespace ExcelReader.Controllers
             condition["id"] = userId;
 
             var user = _userRepository.Get(condition);
+
             if (user == null)
             {
                 return NotFound(CustomResponseMessage.ErrorCustom("Not found", "User was not found!"));
@@ -78,12 +79,22 @@ namespace ExcelReader.Controllers
 
             if (!PasswordManager.VerifyPassword(changePasswordDTO.oldPassword, user.Password))
             {
-                return Forbid(CustomResponseMessage.ErrorCustom("", ""));
+                return StatusCode(StatusCodes.Status403Forbidden, CustomResponseMessage.ErrorCustom("Forbidden", "Failed to verify old password."));
             }
 
+            user.Password = PasswordManager.HashPassword(changePasswordDTO.newPassword);
+            user.UpdatedAt = DateTime.Now;
 
-            return Ok(CustomResponseMessage.OkCustom<object>("Successful query", new { fileCount = userFileCount }));
+            var updateStatus = _userRepository.Update(user);
+            if (updateStatus == null)
+            {
+                return BadRequest(CustomResponseMessage.ErrorCustom("update error", "Failed to update password. Try again later."));
+            }
+
+            return Ok(CustomResponseMessage.OkCustom<string?>("Password changed successfully", null));
         }
+
+
         [HttpPost]
         [Route("login")]
         public async Task<ActionResult<ResponseModel<AuthResponse>>> Login([FromBody] UserLoginDTO loginDto)
@@ -105,6 +116,15 @@ namespace ExcelReader.Controllers
             if (!PasswordManager.VerifyPassword(loginDto.Password, existingUser.Password))
             {
                 return Unauthorized(CustomResponseMessage.ErrorCustom("Unauthorized", "Authentication failed"));
+            }
+
+            if (existingUser.Status != UserStatus.OK)
+            {
+                return Unauthorized(CustomResponseMessage.ErrorCustom("Unauthorized", $"Account error. Status: {existingUser.Status}"));
+            }
+            if (existingUser.DeletedAt != null)
+            {
+                return Unauthorized(CustomResponseMessage.ErrorCustom("Unauthorized", $"Account error. Deleted by admin"));
             }
 
             var token = JwtAuthService.GenerateJwtToken(existingUser, _configuration);
@@ -129,7 +149,7 @@ namespace ExcelReader.Controllers
                 Password = PasswordManager.HashPassword(signupDto.Password),
                 RoleId = 1, //todo: load dynamically
                 PasswordResetId = null,
-                Status = UserStatus.Pending,
+                Status = UserStatus.OK,
                 CreatedAt = DateTime.Now,
                 UpdatedAt = null,
                 DeletedAt = null,

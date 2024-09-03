@@ -15,12 +15,12 @@ namespace ExcelReader.DataAccess
         public FileMetadataRepository(IMyDbConnection dbConnection) : base(dbConnection) { }
         public int Remove(int id)
         {
-            return base.Remove(tableName, "Id", id);
+            return base.Remove(tableName, "id", id);
         }
 
         public int RemoveRange(List<int> Ids)
         {
-            return base.RemoveRange(tableName, "Id", Ids);
+            return base.RemoveRange(tableName, "id", Ids);
         }
         public new ulong Add(FileMetadata fileMetadata)
         {
@@ -43,23 +43,23 @@ namespace ExcelReader.DataAccess
                 )
                 VALUES 
                 (
-                    @FileName,
-                    @FileNameSystem,
-                    @UserId, 
-                    @CreatedAt,
-                    @UpdatedAt, 
-                    @DeletedAt
+                    @file_name,
+                    @file_name_system,
+                    @user_id, 
+                    @created_at,
+                    @updated_at, 
+                    @deleted_at
                 );
             SELECT SCOPE_IDENTITY();";
 
                     using (SqlCommand command = new SqlCommand(query, connection))
                     {
-                        command.Parameters.AddWithValue("@FileName", fileMetadata.FileName);
-                        command.Parameters.AddWithValue("@FileNameSystem", fileMetadata.FileNameSystem);
-                        command.Parameters.AddWithValue("@UserId", fileMetadata.UserId);
-                        command.Parameters.AddWithValue("@CreatedAt", fileMetadata.CreatedAt);
-                        command.Parameters.AddWithValue("@UpdatedAt", fileMetadata.UpdatedAt ?? (object)DBNull.Value);
-                        command.Parameters.AddWithValue("@DeletedAt", fileMetadata.DeletedAt ?? (object)DBNull.Value);
+                        command.Parameters.AddWithValue("@file_name", fileMetadata.FileName);
+                        command.Parameters.AddWithValue("@file_name_system", fileMetadata.FileNameSystem);
+                        command.Parameters.AddWithValue("@user_id", fileMetadata.UserId);
+                        command.Parameters.AddWithValue("@created_at", fileMetadata.CreatedAt);
+                        command.Parameters.AddWithValue("@updated_at", fileMetadata.UpdatedAt ?? (object)DBNull.Value);
+                        command.Parameters.AddWithValue("@deleted_at", fileMetadata.DeletedAt ?? (object)DBNull.Value);
 
                         newId = Convert.ToUInt64(command.ExecuteScalar());
                     }
@@ -91,34 +91,43 @@ namespace ExcelReader.DataAccess
                         if (whereClause.Length > 0)
                             whereClause.Append(" AND ");
 
-                        whereClause.Append($"f.[{pair.Key}] = @{pair.Key}");
-                        parameters.Add(new SqlParameter($"@{pair.Key}", pair.Value));
+                        if (pair.Value == null)
+                        {
+                            whereClause.Append($"f.[{pair.Key}] IS NULL");
+
+                        }
+                        else
+                        {
+                            whereClause.Append($"f.[{pair.Key}] = @{pair.Key}");
+
+                            parameters.Add(new SqlParameter($"@{pair.Key}", pair.Value));
+                        }
                     }
 
                     string query;
                     if (resolveRelation)
                     {
                         query = $@"
-                        SELECT f.[id] as Id, 
-                               f.[file_name] as FileName,
-                               f.[file_name_system] as FileNameSystem,
-                               f.[user_id] as UserId, 
-                               f.[created_at] as CreatedAt, 
-                               f.[updated_at] as UpdatedAt, 
-                               f.[deleted_at] as DeletedAt
+                        SELECT f.[id], 
+                               f.[file_name],
+                               f.[file_name_system],
+                               f.[user_id], 
+                               f.[created_at], 
+                               f.[updated_at], 
+                               f.[deleted_at]
                         FROM [{tableName}] f
                         INNER JOIN [users] u ON f.[user_id] = u.[id]";
                     }
                     else
                     {
                         query = $@"
-                        SELECT f.[id] as Id, 
-                               f.[file_name] as FileName,
-                               f.[file_name_system] as FileNameSystem,
-                               f.[user_id] as UserId, 
-                               f.[created_at] as CreatedAt, 
-                               f.[updated_at] as UpdatedAt, 
-                               f.[deleted_at] as DeletedAt
+                        SELECT f.[id] , 
+                               f.[file_name] ,
+                               f.[file_name_system],
+                               f.[user_id] , 
+                               f.[created_at] , 
+                               f.[updated_at] , 
+                               f.[deleted_at] 
                         FROM [{tableName}] f";
                     }
 
@@ -137,13 +146,13 @@ namespace ExcelReader.DataAccess
                             {
                                 fileMetadata = new FileMetadata
                                 {
-                                    Id = Convert.ToInt64(reader["Id"]),
-                                    FileName = Convert.ToString(reader["FileName"]),
-                                    FileNameSystem = Convert.ToString(reader["FileNameSystem"]),
-                                    UserId = Convert.ToInt64(reader["UserId"]),
-                                    CreatedAt = Convert.ToDateTime(reader["CreatedAt"]),
-                                    UpdatedAt = reader["UpdatedAt"] == DBNull.Value ? (DateTime?)null : Convert.ToDateTime(reader["UpdatedAt"]),
-                                    DeletedAt = reader["DeletedAt"] == DBNull.Value ? (DateTime?)null : Convert.ToDateTime(reader["DeletedAt"])
+                                    Id = Convert.ToInt64(reader["id"]),
+                                    FileName = Convert.ToString(reader["file_name"]),
+                                    FileNameSystem = Convert.ToString(reader["file_name_system"]),
+                                    UserId = Convert.ToInt64(reader["user_id"]),
+                                    CreatedAt = Convert.ToDateTime(reader["created_at"]),
+                                    UpdatedAt = reader["updated_at"] == DBNull.Value ? (DateTime?)null : Convert.ToDateTime(reader["updated_at"]),
+                                    DeletedAt = reader["deleted_at"] == DBNull.Value ? (DateTime?)null : Convert.ToDateTime(reader["deleted_at"])
                                 };
                             }
                         }
@@ -177,8 +186,15 @@ namespace ExcelReader.DataAccess
                             if (whereClause.Length > 0)
                                 whereClause.Append(" AND ");
 
-                            whereClause.Append($"f.[{pair.Key}] = @{pair.Key}");
-                            parameters.Add(new SqlParameter($"@{pair.Key}", pair.Value));
+                            if (pair.Value == null)
+                            {
+                                whereClause.Append($"f.[{pair.Key}] IS NULL");
+                            }
+                            else
+                            {
+                                whereClause.Append($"f.[{pair.Key}] = @{pair.Key}");
+                                parameters.Add(new SqlParameter($"@{pair.Key}", pair.Value));
+                            }
                         }
                     }
 
@@ -187,26 +203,26 @@ namespace ExcelReader.DataAccess
                     {
 
                         query = $@"
-            SELECT f.[id] as Id, 
-                   f.[file_name] as FileName,
-                   f.[file_name_system] as FileNameSystem,
-                   f.[user_id] as UserId, 
-                   f.[created_at] as CreatedAt, 
-                   f.[updated_at] as UpdatedAt, 
-                   f.[deleted_at] as DeletedAt
+            SELECT f.[id], 
+                   f.[file_name],
+                   f.[file_name_system] ,
+                   f.[user_id] , 
+                   f.[created_at] , 
+                   f.[updated_at] , 
+                   f.[deleted_at] 
             FROM [{tableName}] f
             INNER JOIN [users] u ON f.[user_id] = u.[id]";
                     }
                     else
                     {
                         query = $@"
-            SELECT f.[id] as Id, 
-                   f.[file_name] as FileName,
-                   f.[file_name_system] as FileNameSystem,
-                   f.[user_id] as UserId, 
-                   f.[created_at] as CreatedAt, 
-                   f.[updated_at] as UpdatedAt, 
-                   f.[deleted_at] as DeletedAt
+            SELECT f.[id] , 
+                   f.[file_name] ,
+                   f.[file_name_system] ,
+                   f.[user_id] , 
+                   f.[created_at] , 
+                   f.[updated_at] , 
+                   f.[deleted_at] 
             FROM [{tableName}] f";
 
                     }
@@ -228,13 +244,13 @@ namespace ExcelReader.DataAccess
                             {
                                 FileMetadata fileMetadata = new FileMetadata
                                 {
-                                    Id = Convert.ToInt64(row["Id"]),
-                                    FileName = Convert.ToString(row["FileName"]),
-                                    FileNameSystem = Convert.ToString(row["FileNameSystem"]),
-                                    UserId = Convert.ToInt64(row["UserId"]),
-                                    CreatedAt = Convert.ToDateTime(row["CreatedAt"]),
-                                    UpdatedAt = row["UpdatedAt"] == DBNull.Value ? (DateTime?)null : Convert.ToDateTime(row["UpdatedAt"]),
-                                    DeletedAt = row["DeletedAt"] == DBNull.Value ? (DateTime?)null : Convert.ToDateTime(row["DeletedAt"])
+                                    Id = Convert.ToInt64(row["id"]),
+                                    FileName = Convert.ToString(row["file_name"]),
+                                    FileNameSystem = Convert.ToString(row["file_name_system"]),
+                                    UserId = Convert.ToInt64(row["user_id"]),
+                                    CreatedAt = Convert.ToDateTime(row["created_at"]),
+                                    UpdatedAt = row["updated_at"] == DBNull.Value ? (DateTime?)null : Convert.ToDateTime(row["updated_at"]),
+                                    DeletedAt = row["deleted_at"] == DBNull.Value ? (DateTime?)null : Convert.ToDateTime(row["deleted_at"])
                                 };
 
                                 fileMetadatas.Add(fileMetadata);

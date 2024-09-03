@@ -8,7 +8,7 @@ namespace ExcelReader.Services
 {
     public class JwtAuthService
     {
-        public static string GenerateJwtToken(User user, IConfiguration configuration, int days=30)
+        public static string GenerateJwtToken(User user, IConfiguration configuration, int days = 30)
         {
             if (configuration == null)
             {

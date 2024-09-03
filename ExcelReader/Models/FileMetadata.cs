@@ -31,13 +31,13 @@ namespace ExcelReader.Models
         [BindNever]
         public DateTime? DeletedAt { get; set; }
 
-        public User? User { get; set; }
+        public Role? User { get; set; }
 
         public FileMetadata() { }
 
         public FileMetadata(long id, string fileName, string fileNameSystem, long fileOwner,
                             DateTime createdAt, DateTime? updatedAt, DateTime? deletedAt,
-                            User user, Role role)
+                            Role user, Role role)
         {
             Id = id;
             FileName = fileName;

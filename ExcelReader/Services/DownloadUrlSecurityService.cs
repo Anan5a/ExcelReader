@@ -30,7 +30,7 @@ namespace ExcelReader.Services
         }
 
 
-        public static bool VerifySignature(string dataToVerify, string signatureHex, string publicKeyB64)
+        public static bool VerifySignature(string dataToVerify, string signatureHex, string publicKeyB64, bool computeMd5 = false)
         {
             try
             {
@@ -71,6 +71,7 @@ namespace ExcelReader.Services
             return bytes;
         }
 
+        public static string ComputeMd5Hash(string input) => BitConverter.ToString(MD5.Create().ComputeHash(Encoding.UTF8.GetBytes(input))).Replace("-", "").ToLower();
 
 
     }

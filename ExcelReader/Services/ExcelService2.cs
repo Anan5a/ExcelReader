@@ -50,7 +50,7 @@ namespace ExcelReader.Services
             }
         }
 
-        public static XLWorkbook? WriteExcelFile(IList<string> columns, IEnumerable<User> rows, string? filePath = null)
+        public static XLWorkbook? WriteExcelFile(IList<string> columns, IEnumerable<Role> rows, string? filePath = null)
         {
             try
             {
@@ -72,7 +72,7 @@ namespace ExcelReader.Services
 
                         for (var i = 1; i <= columns.Count(); i++)
                         {
-                            ws.Cell(rowNumber, i).Value = typeof(User).GetProperty(columns[i - 1]).GetValue(row, null).ToString();
+                            ws.Cell(rowNumber, i).Value = typeof(Role).GetProperty(columns[i - 1]).GetValue(row, null).ToString();
                         }
 
                         rowNumber++;

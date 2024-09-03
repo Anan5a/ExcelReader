@@ -1,10 +1,11 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using Microsoft.AspNetCore.Mvc.ModelBinding;
+using System.ComponentModel.DataAnnotations;
 
 namespace ExcelReader.Models
 {
     public class Role
     {
-        [Key]
+        [BindNever]
         public long Id { get; set; }
 
         [Required]

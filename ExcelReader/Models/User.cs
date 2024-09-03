@@ -27,12 +27,12 @@ namespace ExcelReader.Models
         [Required]
         [BindNever]
         public DateTime CreatedAt { get; set; }
-        
+
         [BindNever]
         public DateTime? UpdatedAt { get; set; }
 
         [BindNever]
-        
+
         public DateTime? DeletedAt { get; set; }
 
         [Required]
