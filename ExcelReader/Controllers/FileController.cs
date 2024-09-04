@@ -17,7 +17,8 @@ namespace ExcelReader.Controllers
     [Authorize(Roles = "admin,user,super_admin")]
     public class FileController : Controller
     {
-        private readonly string[] AllowedExtensions = { ".xls", ".xlsx" };
+
+        private readonly string[] AllowedExtensions = { "any", ".xls", ".xlsx" };
         private long MAX_UPLOAD_SIZE = 2_000_000; //bytes
 
 
@@ -71,22 +72,22 @@ namespace ExcelReader.Controllers
 
             if (uploadDto.ExcelFile == null)
             {
-                return BadRequest();
+                return BadRequest(CustomResponseMessage.ErrorCustom("file error", "No file"));
             }
             //check file type
             long.TryParse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var userId);
 
             var fileExtension = Path.GetExtension(uploadDto.ExcelFile.FileName).ToLower();
 
-            if (!AllowedExtensions.Contains(fileExtension))
+            if (!AllowedExtensions.First().Equals("any") && !AllowedExtensions.Contains(fileExtension))
             {
-                return BadRequest();
+                return BadRequest(CustomResponseMessage.ErrorCustom("file error", "The file type is not allowed"));
             }
 
 
             if (uploadDto.ExcelFile.Length > MAX_UPLOAD_SIZE)
             {
-                return BadRequest();
+                return BadRequest(CustomResponseMessage.ErrorCustom("file error", "The file exceeds maximum allowed size"));
             }
 
             var fileNameUUID = Guid.NewGuid().ToString();

@@ -153,7 +153,7 @@ namespace ExcelReader.Controllers
                 CreatedAt = DateTime.Now,
                 UpdatedAt = null,
                 DeletedAt = null,
-                VerifiedAt = null,
+                VerifiedAt = DateTime.Now,
             };
             var createStatus = _userRepository.Add(user);
 
