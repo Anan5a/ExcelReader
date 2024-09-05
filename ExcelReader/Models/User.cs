@@ -51,13 +51,16 @@ namespace ExcelReader.Models
         [BindNever]
         public Role? Role { get; set; }
 
+        [BindNever]
+        public object? SocialLogin { get; set; }
+
         // Default constructor
         public User() { }
 
         // Parameterized constructor
         public User(long id, string name, string email, string password, DateTime createdAt,
                     DateTime? updatedAt, DateTime? deletedAt, long roleId, string passwordResetId,
-                    DateTime? verifiedAt, string status, Role? role)
+                    DateTime? verifiedAt, string status, Role? role, object? socialLogin)
         {
             Id = id;
             Name = name;
@@ -71,6 +74,7 @@ namespace ExcelReader.Models
             VerifiedAt = verifiedAt;
             Status = status;
             Role = role;
+            SocialLogin = socialLogin;
         }
     }
 

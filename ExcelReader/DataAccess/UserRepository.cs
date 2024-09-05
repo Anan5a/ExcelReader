@@ -4,6 +4,7 @@ using ExcelReader.Services;
 using Microsoft.Data.SqlClient;
 using System.Data;
 using System.Text;
+using System.Text.Json;
 
 namespace DataAccess
 {
@@ -40,7 +41,8 @@ namespace DataAccess
                                                 [role_id], 
                                                 [password_reset_id], 
                                                 [verified_at], 
-                                                [status]
+                                                [status],
+                                                [social_login]
                                             ) 
                                             VALUES (
                                                 @Name, 
@@ -52,7 +54,8 @@ namespace DataAccess
                                                 @RoleId, 
                                                 @PasswordResetId, 
                                                 @VerifiedAt, 
-                                                @Status
+                                                @Status,
+                                                @SocialLogin
                                             ); 
                                             SELECT SCOPE_IDENTITY();";
 
@@ -69,6 +72,7 @@ namespace DataAccess
                         command.Parameters.AddWithValue("@PasswordResetId", user.PasswordResetId ?? (object)DBNull.Value);
                         command.Parameters.AddWithValue("@VerifiedAt", user.VerifiedAt ?? (object)DBNull.Value);
                         command.Parameters.AddWithValue("@Status", user.Status ?? (object)DBNull.Value);
+                        command.Parameters.AddWithValue("@SocialLogin", user.SocialLogin != null ? JsonSerializer.Serialize(user.SocialLogin) : (object)DBNull.Value);
 
                         var insertedUserId = Convert.ToUInt64(command.ExecuteScalar());
                         return insertedUserId;
@@ -131,6 +135,7 @@ namespace DataAccess
                        u.[password_reset_id] , 
                        u.[verified_at] , 
                        u.[status] ,
+                       u.[social_login] ,
                        r.[role_name] 
                 FROM [{tableName}] u
                 INNER JOIN [roles] r ON u.[role_id] = r.[id]";
@@ -149,6 +154,7 @@ namespace DataAccess
                        u.[password_reset_id] , 
                        u.[verified_at] , 
                        u.[status] ,
+                       u.[social_login] 
                 FROM [{tableName}] u";
                     }
 
@@ -181,6 +187,7 @@ namespace DataAccess
                                     PasswordResetId = row["password_reset_id"] == DBNull.Value ? null : Convert.ToString(row["password_reset_id"]),
                                     VerifiedAt = row["verified_at"] == DBNull.Value ? (DateTime?)null : Convert.ToDateTime(row["verified_at"]),
                                     Status = Convert.ToString(row["status"]),
+                                    SocialLogin = row["social_login"] == DBNull.Value ? null : JsonSerializer.Deserialize<object>(Convert.ToString(row["social_login"]))
                                 };
 
                                 if (resolveRelation)
@@ -246,6 +253,7 @@ namespace DataAccess
                        u.[password_reset_id] , 
                        u.[verified_at] , 
                        u.[status] ,
+                       u.[social_login],
                        r.[role_name] 
                 FROM [{tableName}] u
                 INNER JOIN [roles] r ON u.[role_id] = r.[id]
@@ -264,6 +272,7 @@ namespace DataAccess
                        u.[role_id] , 
                        u.[password_reset_id] , 
                        u.[verified_at] , 
+                       u.[social_login],
                        u.[status] 
                 FROM [{tableName}] u
                 WHERE " + whereClause;
@@ -290,6 +299,8 @@ namespace DataAccess
                                     PasswordResetId = reader["password_reset_id"] == DBNull.Value ? null : Convert.ToString(reader["password_reset_id"]),
                                     VerifiedAt = reader["verified_at"] == DBNull.Value ? (DateTime?)null : Convert.ToDateTime(reader["verified_at"]),
                                     Status = Convert.ToString(reader["status"]),
+                                    SocialLogin = reader["social_login"] == DBNull.Value ? null : JsonSerializer.Deserialize<object>(Convert.ToString(reader["social_login"]))
+
                                 };
 
                                 if (resolveRelation)
@@ -328,7 +339,8 @@ namespace DataAccess
                         [role_id] = @RoleId, 
                         [password_reset_id] = @PasswordResetId, 
                         [verified_at] = @VerifiedAt, 
-                        [status] = @Status
+                        [status] = @Status,
+                        [social_login] = @SocialLogin
                     WHERE [id] = @Id";
 
                     using (SqlCommand command = new SqlCommand(query, connection))
@@ -342,6 +354,7 @@ namespace DataAccess
                         command.Parameters.AddWithValue("@PasswordResetId", existingUser.PasswordResetId ?? (object)DBNull.Value);
                         command.Parameters.AddWithValue("@VerifiedAt", existingUser.VerifiedAt ?? (object)DBNull.Value);
                         command.Parameters.AddWithValue("@Status", existingUser.Status ?? (object)DBNull.Value);
+                        command.Parameters.AddWithValue("@SocialLogin", existingUser.SocialLogin == null ? (object)DBNull.Value : JsonSerializer.Serialize(existingUser.SocialLogin));
                         command.Parameters.AddWithValue("@Id", existingUser.Id);
 
                         int rowsAffected = command.ExecuteNonQuery();

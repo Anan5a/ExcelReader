@@ -4,6 +4,7 @@ using ExcelReader.Models;
 using ExcelReader.Models.DTOs;
 using ExcelReader.Services;
 using ExcelReader.Utility;
+using Google.Apis.Auth;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
@@ -167,7 +168,82 @@ namespace ExcelReader.Controllers
             //maybe auto login?
             //var token = JwtAuthService.GenerateJwtToken(existingUser, _configuration);
             //return new AuthResponse { Token = token, user = existingUser };
+        }
 
+
+        ///// for social login/signup ////
+
+
+        [HttpPost]
+        [Route("social-auth")]
+        public async Task<ActionResult<ResponseModel<object?>>> SocialAuth([FromBody] SocialAuthDTO socialAuthDto)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(CustomResponseMessage.ErrorCustom("Bad Request", "Invalid request parameters?"));
+            }
+            //verify the id token
+
+            GoogleJsonWebSignature.Payload? payload;
+            try
+            {
+                string idToken = socialAuthDto.IdToken;
+                string clientId = _configuration["ExternalAPIs:google:web:client_id"];
+                payload = await GoogleApiAuth.VerifyIdTokenAsync(idToken, clientId);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(CustomResponseMessage.ErrorCustom("bad Request", "Unable to verify user info," + ex.Message));
+            }
+
+            //end verify
+
+            //if user exist by email login
+
+            Dictionary<string, dynamic> condition = new Dictionary<string, dynamic>();
+            condition["email"] = payload.Email;
+
+            User? existingUser = _userRepository.Get(condition, resolveRelation: true);
+            if (existingUser != null)
+            {
+                if (existingUser.SocialLogin == null)
+                {
+                    //update users social login info
+                    _userRepository.Update(existingUser);
+
+                }
+
+                var token = JwtAuthService.GenerateJwtToken(existingUser, _configuration);
+                return Ok(CustomResponseMessage.OkCustom("Login successful.", new AuthResponse { Token = token, user = existingUser }));
+            }
+
+            //create new user
+
+            User user = new User
+            {
+                Email = payload.Email,
+                Name = payload.Name,
+                Password = PasswordManager.HashPassword(payload.JwtId),
+                RoleId = 1, //todo: load dynamically
+                PasswordResetId = null,
+                Status = UserStatus.OK,
+                CreatedAt = DateTime.Now,
+                UpdatedAt = null,
+                DeletedAt = null,
+                VerifiedAt = DateTime.Now,
+                SocialLogin = new { uid = payload.Subject },
+            };
+            var createStatus = _userRepository.Add(user);
+
+            if (createStatus == 0)
+            {
+                return BadRequest(CustomResponseMessage.ErrorCustom("bad Request", "No user was created"));
+            }
+            user.Id = Convert.ToInt64(createStatus);
+            user.Role = new Role { Id = 1, RoleName = "user" };
+
+            var token2 = JwtAuthService.GenerateJwtToken(user, _configuration);
+            return Ok(CustomResponseMessage.OkCustom("Signup successful.", new AuthResponse { Token = token2, user = user }));
         }
 
 
