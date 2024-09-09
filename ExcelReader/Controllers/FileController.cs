@@ -1,12 +1,13 @@
-﻿using DataAccess.IRepository;
-using ExcelReader.DataAccess.IRepository;
-using ExcelReader.Models;
-using ExcelReader.Models.DTOs;
-using ExcelReader.Services;
+﻿using BLL;
+using IRepository;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Models;
+using Models.DTOs;
+using Services;
 using System.Net;
 using System.Security.Claims;
+using Utility;
 
 namespace ExcelReader.Controllers
 {
@@ -17,10 +18,6 @@ namespace ExcelReader.Controllers
     [Authorize(Roles = "admin,user,super_admin")]
     public class FileController : Controller
     {
-
-        private readonly string[] AllowedExtensions = { "any", ".xls", ".xlsx" };
-        private long MAX_UPLOAD_SIZE = 2_000_000; //bytes
-
 
         private readonly IWebHostEnvironment _webHostEnvironment;
         private readonly IUserRepository _userRepository;
@@ -48,10 +45,7 @@ namespace ExcelReader.Controllers
         {
             long.TryParse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var userId);
 
-            Dictionary<string, dynamic> condition = new Dictionary<string, dynamic>();
-            condition["user_id"] = userId;
-            condition["deleted_at"] = null;
-            var list = _fileMetadataRepository.GetAll(condition);
+            var list = FilesBLL.ListFiles(_fileMetadataRepository, userId, null);
 
             return Ok(CustomResponseMessage.OkCustom<IEnumerable<FileMetadata>>("Query successful.", list));
 
@@ -70,67 +64,26 @@ namespace ExcelReader.Controllers
                 return BadRequest();
             }
 
-            if (uploadDto.ExcelFile == null)
-            {
-                return BadRequest(CustomResponseMessage.ErrorCustom("file error", "No file"));
-            }
-            //check file type
             long.TryParse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var userId);
+            var uploadState = FilesBLL.Upload(_fileMetadataRepository, _webHostEnvironment, userId, uploadDto);
 
-            var fileExtension = Path.GetExtension(uploadDto.ExcelFile.FileName).ToLower();
-
-            if (!AllowedExtensions.First().Equals("any") && !AllowedExtensions.Contains(fileExtension))
+            switch (uploadState)
             {
-                return BadRequest(CustomResponseMessage.ErrorCustom("file error", "The file type is not allowed"));
+                case BLLReturnEnum.File_FILE_IS_EMPTY:
+                    return BadRequest(CustomResponseMessage.ErrorCustom("file error", "No file"));
+
+                case BLLReturnEnum.File_FILE_TYPE_NOT_ALLOWED:
+                    return BadRequest(CustomResponseMessage.ErrorCustom("file error", "The file type is not allowed"));
+
+                case BLLReturnEnum.File_FILE_SIZE_TOO_LARGE:
+                    return BadRequest(CustomResponseMessage.ErrorCustom("file error", "The file exceeds maximum allowed size"));
+
+                case BLLReturnEnum.ACTION_OK:
+                    return Ok(CustomResponseMessage.OkCustom<ulong?>("File uploaded.", null));
+
+                default:
+                    return BadRequest(CustomResponseMessage.ErrorCustom("Bad Request", "Failed to upload file, try again later"));
             }
-
-
-            if (uploadDto.ExcelFile.Length > MAX_UPLOAD_SIZE)
-            {
-                return BadRequest(CustomResponseMessage.ErrorCustom("file error", "The file exceeds maximum allowed size"));
-            }
-
-            var fileNameUUID = Guid.NewGuid().ToString();
-            var fileNameOriginal = uploadDto.FileName ?? Path.GetFileNameWithoutExtension(uploadDto.ExcelFile.FileName);
-            string fileNameSystem = fileNameUUID + fileExtension;
-
-            string baseFileDirectory = _webHostEnvironment.WebRootPath;
-            string fileDirectory = Path.Combine(baseFileDirectory, "uploads");
-            var filePathDisk = Path.Combine(fileDirectory, fileNameSystem);
-
-
-            //save file
-            using (var stream = new FileStream(filePathDisk, FileMode.Create))
-            {
-                await uploadDto.ExcelFile.CopyToAsync(stream);
-            }
-            //add to database
-
-            FileMetadata fileMetadata = new FileMetadata
-            {
-                CreatedAt = DateTime.Now,
-                FileName = fileNameOriginal + fileExtension,
-                FileNameSystem = fileNameSystem,
-                UserId = userId,
-            };
-
-            var fileId = _fileMetadataRepository.Add(fileMetadata);
-
-            if (fileId != 0)
-            {
-                return Ok(CustomResponseMessage.OkCustom<ulong>("File uploaded.", fileId));
-            }
-            //delete file, since unable to add to db
-            try
-            {
-                System.IO.File.Delete(filePathDisk);
-            }
-            catch (Exception ex)
-            {
-                ErrorConsole.Log(ex.Message);
-            }
-
-            return BadRequest(CustomResponseMessage.ErrorCustom("Bad Request", "Failed to upload file, try again later"));
         }
 
 
@@ -148,31 +101,19 @@ namespace ExcelReader.Controllers
 
             //check file type
             long.TryParse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var userId);
-            Dictionary<string, dynamic> condition = new Dictionary<string, dynamic>();
-            condition["user_id"] = userId;
-            condition["id"] = editFileDto.fileId;
 
-            var existingFile = _fileMetadataRepository.Get(condition);
-
-            if (existingFile == null)
+            var updateState = FilesBLL.Update(_fileMetadataRepository, userId, editFileDto);
+            switch (updateState)
             {
-                return NotFound(CustomResponseMessage.ErrorCustom("no file", "File not found by the user"));
+                case BLLReturnEnum.File_FILE_NOT_FOUND:
+                    return NotFound(CustomResponseMessage.ErrorCustom("no file", "File not found by the user"));
 
+                case BLLReturnEnum.ACTION_OK:
+                    return Ok(CustomResponseMessage.OkCustom<string>("File updated.", "File name was changed successfully."));
+
+                default:
+                    return BadRequest(CustomResponseMessage.ErrorCustom("Bad Request", "Failed to update file, try again later"));
             }
-
-            var fileExtension = Path.GetExtension(existingFile.FileNameSystem).ToLower();
-            var fileNameUser = Path.GetFileNameWithoutExtension(editFileDto.FileName);
-            existingFile.FileName = fileNameUser + fileExtension;
-            existingFile.UpdatedAt = DateTime.Now;
-
-
-            if (_fileMetadataRepository.Update(existingFile) != null)
-            {
-                return Ok(CustomResponseMessage.OkCustom<string>("File updated.", "File name was changed successfully."));
-            }
-
-
-            return BadRequest(CustomResponseMessage.ErrorCustom("Bad Request", "Failed to update file, try again later"));
         }
 
 

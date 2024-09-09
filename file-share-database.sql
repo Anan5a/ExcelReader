@@ -26,6 +26,7 @@ CREATE TABLE [file_metadata] (
 	[file_name] nvarchar(32) NOT NULL,
 	[file_name_system] nvarchar(32) NOT NULL UNIQUE,
 	[user_id] bigint NOT NULL,
+	[filesize_bytes] bigint ,
 	[created_at] datetime2(7) NOT NULL,
 	[updated_at] datetime2(7),
 	[deleted_at] datetime2(7),

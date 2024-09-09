@@ -1,11 +1,9 @@
 using DataAccess;
-using DataAccess.IRepository;
-using ExcelReader.DataAccess;
-using ExcelReader.DataAccess.IRepository;
-using ExcelReader.Utility;
+using IRepository;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using Utility;
 
 var builder = WebApplication.CreateBuilder(args);
 
