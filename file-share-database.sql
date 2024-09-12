@@ -8,6 +8,7 @@ CREATE TABLE [users] (
 	[deleted_at] datetime2(7),
 	[role_id] bigint NOT NULL,
 	[password_reset_id] nvarchar(max),
+	[social_login] nvarchar(max),
 	[verified_at] datetime2(7),
 	[status] nvarchar(max) NOT NULL DEFAULT 'pending',
 	PRIMARY KEY ([id]),
@@ -36,3 +37,9 @@ CREATE TABLE [file_metadata] (
 ALTER TABLE [users] ADD CONSTRAINT [users_fk7] FOREIGN KEY ([role_id]) REFERENCES [roles]([id]);
 
 ALTER TABLE [file_metadata] ADD CONSTRAINT [file_metadata_fk3] FOREIGN KEY ([user_id]) REFERENCES [users]([id]);
+
+
+
+--- insert initial role data
+
+INSERT INTO roles(role_name) values ('user'),('admin'),('super_admin'),('guest');
