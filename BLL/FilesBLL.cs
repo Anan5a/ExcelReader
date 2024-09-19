@@ -22,9 +22,9 @@ namespace BLL
 
         }
 
-        public static BLLReturnEnum Upload(IFileMetadataRepository _fileMetadataRepository, IWebHostEnvironment _webHostEnvironment, long userId, UploadDTO uploadDto)
+        public static BLLReturnEnum Upload(IFileMetadataRepository _fileMetadataRepository, IWebHostEnvironment _webHostEnvironment, long userId, UploadDTO uploadDto, out FileMetadata? uploadedFile)
         {
-
+            uploadedFile = null;
 
             if (uploadDto.ExcelFile == null)
             {
@@ -74,6 +74,8 @@ namespace BLL
 
             if (fileId != 0)
             {
+                fileMetadata.Id = Convert.ToInt64(fileId);
+                uploadedFile = fileMetadata;
                 return BLLReturnEnum.ACTION_OK;
             }
             //delete file, since unable to add to db
@@ -119,6 +121,16 @@ namespace BLL
 
             return BLLReturnEnum.ACTION_ERROR;
         }
+        public static FileMetadata? GetFile(IFileMetadataRepository _fileMetadataRepository, long userId, long fileId)
+        {
 
+            Dictionary<string, dynamic> condition = new Dictionary<string, dynamic>();
+            condition["user_id"] = userId;
+            condition["id"] = fileId;
+
+            var existingFile = _fileMetadataRepository.Get(condition);
+
+            return existingFile;
+        }
     }
 }

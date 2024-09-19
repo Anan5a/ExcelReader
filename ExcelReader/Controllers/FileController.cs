@@ -1,9 +1,12 @@
 ﻿using BLL;
+using ExcelReader.Realtime;
 using IRepository;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using Models;
 using Models.DTOs;
+using Models.RealtimeMessage;
 using Services;
 using System.Net;
 using System.Security.Claims;
@@ -19,22 +22,26 @@ namespace ExcelReader.Controllers
     public class FileController : Controller
     {
 
+
         private readonly IWebHostEnvironment _webHostEnvironment;
         private readonly IUserRepository _userRepository;
         private readonly IFileMetadataRepository _fileMetadataRepository;
         private readonly IConfiguration _configuration;
 
+        private IHubContext<SimpleHub> _hubContext;
 
         public FileController(
             IWebHostEnvironment webHostEnvironment,
             IUserRepository userRepository,
             IFileMetadataRepository fileMetadataRepository,
-            IConfiguration configuration)
+            IConfiguration configuration,
+            IHubContext<SimpleHub> hubContext)
         {
             _webHostEnvironment = webHostEnvironment;
             _userRepository = userRepository;
             _fileMetadataRepository = fileMetadataRepository;
             _configuration = configuration;
+            _hubContext = hubContext;
         }
 
         [HttpGet]
@@ -51,7 +58,19 @@ namespace ExcelReader.Controllers
 
         }
 
+        [HttpGet]
+        [Route("file/{fileId}")]
+        [Authorize(Roles = "user, admin, super_admin")]
 
+        public async Task<ActionResult<ResponseModel<FileMetadata>>> GetFile(long fileId, [FromQuery] string? page)
+        {
+            long.TryParse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var userId);
+
+            var fileMetadata = FilesBLL.GetFile(_fileMetadataRepository, userId, fileId);
+
+            return Ok(CustomResponseMessage.OkCustom<FileMetadata>("Query successful.", fileMetadata));
+
+        }
 
         [HttpPost]
         [Route("upload")]
@@ -65,7 +84,7 @@ namespace ExcelReader.Controllers
             }
 
             long.TryParse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var userId);
-            var uploadState = FilesBLL.Upload(_fileMetadataRepository, _webHostEnvironment, userId, uploadDto);
+            var uploadState = FilesBLL.Upload(_fileMetadataRepository, _webHostEnvironment, userId, uploadDto, out var uploadedFile);
 
             switch (uploadState)
             {
@@ -79,6 +98,15 @@ namespace ExcelReader.Controllers
                     return BadRequest(CustomResponseMessage.ErrorCustom("file error", "The file exceeds maximum allowed size"));
 
                 case BLLReturnEnum.ACTION_OK:
+                    await _hubContext.Clients.User(userId.ToString()).SendAsync("FileChannel", new FileChannelMessage
+                    {
+                        FileId = uploadedFile.Id,
+                        WasFileModified = false,
+                        ShouldRefetch = false,
+                        FileMetadata = uploadedFile,
+
+                    });
+
                     return Ok(CustomResponseMessage.OkCustom<ulong?>("File uploaded.", null));
 
                 default:
@@ -109,6 +137,15 @@ namespace ExcelReader.Controllers
                     return NotFound(CustomResponseMessage.ErrorCustom("no file", "File not found by the user"));
 
                 case BLLReturnEnum.ACTION_OK:
+                    await _hubContext.Clients.User(userId.ToString()).SendAsync("FileChannel", new FileChannelMessage
+                    {
+                        FileId = editFileDto.fileId,
+                        WasFileModified = true,
+                        ShouldRefetch = true,
+                    });
+
+
+
                     return Ok(CustomResponseMessage.OkCustom<string>("File updated.", "File name was changed successfully."));
 
                 default:
@@ -232,7 +269,15 @@ namespace ExcelReader.Controllers
 
             System.IO.File.Delete(filePathDisk);
 
+            await _hubContext.Clients.User(userId.ToString()).SendAsync("FileChannel", new FileChannelMessage
+            {
+                FileId = fileToDelete.Id,
+                WasFileModified = false,
+                ShouldRefetch = false,
+                FileMetadata = null,
+                WasFileDeleted = true
 
+            });
             return Ok(CustomResponseMessage.OkCustom<string>("delete ok", "File deleted from server."));
 
 
