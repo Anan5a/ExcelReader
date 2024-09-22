@@ -97,11 +97,16 @@ namespace DataAccess
                 {
                     if (whereClause.Length > 0)
                         whereClause.Append(" AND ");
-
-                    whereClause.Append($"[{pair.Key}] = @{pair.Key}");
-                    parameters.Add(new SqlParameter($"@{pair.Key}", pair.Value));
+                    if (pair.Value == null)
+                    {
+                        whereClause.Append($"[{pair.Key}] IS NULL");
+                    }
+                    else
+                    {
+                        whereClause.Append($"[{pair.Key}] = @{pair.Key}");
+                        parameters.Add(new SqlParameter($"@{pair.Key}", pair.Value));
+                    }
                 }
-
             }
             string query = $@"
                 SELECT COUNT(*)

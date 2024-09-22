@@ -16,6 +16,7 @@ namespace BLL
             //find user and user files
             Dictionary<string, dynamic> condition = new Dictionary<string, dynamic>();
             condition["user_id"] = userId;
+            condition["deleted_at"] = null;
 
             var userFileCount = _fileMetadataRepository.Count(condition);
 
@@ -177,5 +178,7 @@ namespace BLL
             var token2 = JwtAuthService.GenerateJwtToken(user, _configuration);
             return new AuthResponse { Token = token2, user = user };
         }
+
+
     }
 }

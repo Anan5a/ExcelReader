@@ -1,9 +1,12 @@
 ﻿using BLL;
+using ExcelReader.Realtime;
 using IRepository;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using Models;
 using Models.DTOs;
+using Models.RealtimeMessage;
 using Services;
 using System.Security.Claims;
 using Utility;
@@ -20,14 +23,21 @@ namespace ExcelReader.Controllers
         private IConfiguration _configuration;
         private IUserRepository _userRepository;
         private readonly IFileMetadataRepository _fileMetadataRepository;
+        private IHubContext<SimpleHub> _hubContext;
 
-        public UserController(IWebHostEnvironment webHostEnvironment, IUserRepository userRepository, IConfiguration configuration, IFileMetadataRepository fileMetadataRepository)
+        public UserController(
+            IWebHostEnvironment webHostEnvironment,
+            IUserRepository userRepository,
+            IConfiguration configuration,
+            IFileMetadataRepository fileMetadataRepository,
+            IHubContext<SimpleHub> hubContext
+            )
         {
             _webHostEnvironment = webHostEnvironment;
             _userRepository = userRepository;
             _configuration = configuration;
             _fileMetadataRepository = fileMetadataRepository;
-
+            _hubContext = hubContext;
         }
 
         [HttpGet]
@@ -174,6 +184,42 @@ namespace ExcelReader.Controllers
             }
             return Redirect("/");
         }
+
+        //// Messaging system ////
+        [HttpGet]
+        [Route("online-users")]
+        //[Authorize(Roles = "user, admin, super_admin")]
+        public async Task<ActionResult<ResponseModel<List<long>?>>> GetOnlineUsers()
+        {
+            long.TryParse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var fromUserId);
+            //list of connected/online users
+
+            var userDetails =
+
+            return Ok(CustomResponseMessage.OkCustom<List<long>?>("Query ok.", SimpleHub.GetConnectedUserList()));
+        }
+
+
+        [HttpPost]
+        [Route("send-message")]
+        [Authorize(Roles = "user, admin, super_admin")]
+        public async Task<ActionResult<ResponseModel<object?>>> SendMessage(ChatSendMessageDTO chatSendMessageDTO)
+        {
+            long.TryParse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var fromUserId);
+
+
+            //send message to user
+
+            await _hubContext.Clients.User(chatSendMessageDTO.To.ToString()).SendAsync("ChatChannel", new ChatChannelMessage
+            {
+                Content = chatSendMessageDTO.Message,
+                From = fromUserId,
+            });
+
+            return Ok(CustomResponseMessage.OkCustom<string?>("Message sent.", null));
+
+        }
+
 
     }
 }

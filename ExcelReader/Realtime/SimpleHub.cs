@@ -29,8 +29,14 @@ namespace ExcelReader.Realtime
         public async Task SendMessage(string message)
         {
             ErrorConsole.Log($"Dispatching message: {Context.ConnectionId}: {message}, connId: {Context.ConnectionId}");
-            await Clients.All.SendAsync("Chat", Context.ConnectionId, message);
+            await Clients.All.SendAsync("PublicChannel", Context.ConnectionId, message);
         }
+
+        public static List<long> GetConnectedUserList()
+        {
+            return _userConnections.Keys.Select(long.Parse).ToList();
+        }
+
 
     }
 }
