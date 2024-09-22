@@ -24,7 +24,7 @@ namespace DataAccess
         {
             return base.RemoveRange(tableName, "id", Ids);
         }
-        public new ulong Add(User user)
+        public new long Add(User user)
         {
             try
             {
@@ -74,7 +74,7 @@ namespace DataAccess
                         command.Parameters.AddWithValue("@Status", user.Status ?? (object)DBNull.Value);
                         command.Parameters.AddWithValue("@SocialLogin", user.SocialLogin != null ? JsonSerializer.Serialize(user.SocialLogin) : (object)DBNull.Value);
 
-                        var insertedUserId = Convert.ToUInt64(command.ExecuteScalar());
+                        var insertedUserId = Convert.ToInt64(command.ExecuteScalar());
                         return insertedUserId;
                     }
                 }
@@ -376,7 +376,7 @@ namespace DataAccess
 
         }
 
-        public ulong Count(Dictionary<string, dynamic>? condition = null)
+        public long Count(Dictionary<string, dynamic>? condition = null)
         {
             return base.Count(tableName, condition);
         }

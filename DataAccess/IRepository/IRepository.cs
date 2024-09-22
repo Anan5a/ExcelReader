@@ -6,8 +6,8 @@ namespace IRepository
     public interface IRepository<T> where T : class
     {
         IMyDbConnection dbConnection { get; set; }
-        ulong Add(T entity);
-        ulong Count(string TableName, Dictionary<string, dynamic>? condition = null);
+        long Add(T entity);
+        long Count(string TableName, Dictionary<string, dynamic>? condition = null);
 
         IEnumerable<T>? GetAll(Dictionary<string, dynamic>? condition = null, bool resolveRelation = false);
         T? Get(Dictionary<string, dynamic> condition, bool resolveRelation = false);

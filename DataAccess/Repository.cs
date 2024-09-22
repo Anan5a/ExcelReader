@@ -64,7 +64,7 @@ namespace DataAccess
             }
         }
 
-        public ulong Add(T entity)
+        public long Add(T entity)
         {
             throw new NotImplementedException("Must implement specific logic in the repository");
         }
@@ -84,9 +84,9 @@ namespace DataAccess
             throw new NotImplementedException("Must implement specific logic in the repository");
         }
 
-        public ulong Count(string tableName, Dictionary<string, dynamic>? condition = null)
+        public long Count(string tableName, Dictionary<string, dynamic>? condition = null)
         {
-            ulong rowCount = 0;
+            long rowCount = 0;
             StringBuilder whereClause = new StringBuilder();
             List<SqlParameter> parameters = new List<SqlParameter>();
 
@@ -118,7 +118,7 @@ namespace DataAccess
                 using (SqlCommand command = new SqlCommand(query, connection))
                 {
                     command.Parameters.AddRange(parameters.ToArray());
-                    rowCount = Convert.ToUInt64(command.ExecuteScalar());
+                    rowCount = Convert.ToInt64(command.ExecuteScalar());
                 }
             }
 

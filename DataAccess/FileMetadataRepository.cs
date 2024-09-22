@@ -21,9 +21,9 @@ namespace DataAccess
         {
             return RemoveRange(tableName, "id", Ids);
         }
-        public new ulong Add(FileMetadata fileMetadata)
+        public new long Add(FileMetadata fileMetadata)
         {
-            ulong newId = 0;
+            long newId = 0;
 
             try
             {
@@ -63,7 +63,7 @@ namespace DataAccess
                         command.Parameters.AddWithValue("@updated_at", fileMetadata.UpdatedAt ?? (object)DBNull.Value);
                         command.Parameters.AddWithValue("@deleted_at", fileMetadata.DeletedAt ?? (object)DBNull.Value);
 
-                        newId = Convert.ToUInt64(command.ExecuteScalar());
+                        newId = Convert.ToInt64(command.ExecuteScalar());
                     }
                 }
             }
@@ -320,7 +320,7 @@ namespace DataAccess
             return fileMetadata;
         }
 
-        public ulong Count(Dictionary<string, dynamic>? condition = null)
+        public long Count(Dictionary<string, dynamic>? condition = null)
         {
             return Count(tableName, condition);
         }

@@ -10,7 +10,7 @@ namespace BLL
 {
     public class UserBLL
     {
-        public static ulong Dashboard(IFileMetadataRepository _fileMetadataRepository, long userId)
+        public static long Dashboard(IFileMetadataRepository _fileMetadataRepository, long userId)
         {
 
             //find user and user files

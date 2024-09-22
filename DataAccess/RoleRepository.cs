@@ -23,7 +23,7 @@ namespace DataAccess
         {
             return base.RemoveRange(tableName, "id", Ids);
         }
-        public new ulong Add(Role role)
+        public new long Add(Role role)
         {
             try
             {
@@ -41,7 +41,7 @@ namespace DataAccess
                     using (SqlCommand command = new SqlCommand(sql, connection))
                     {
                         command.Parameters.AddWithValue("@RoleName", role.RoleName);
-                        var insertedUserId = Convert.ToUInt64(command.ExecuteScalar());
+                        var insertedUserId = Convert.ToInt64(command.ExecuteScalar());
                         return insertedUserId;
                     }
                 }
@@ -247,7 +247,7 @@ namespace DataAccess
 
         }
 
-        public ulong Count(Dictionary<string, dynamic>? condition = null)
+        public long Count(Dictionary<string, dynamic>? condition = null)
         {
             return base.Count(tableName, condition);
         }
