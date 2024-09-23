@@ -179,6 +179,14 @@ namespace BLL
             return new AuthResponse { Token = token2, user = user };
         }
 
+        public static IEnumerable<User> UsersById(IUserRepository _userRepository, IEnumerable<long> userIds)
+        {
+            Dictionary<string, dynamic> condition = new Dictionary<string, dynamic>();
+            condition["id"] = userIds;
 
+            return _userRepository.GetAll(condition, resolveRelation: true);
+
+
+        }
     }
 }

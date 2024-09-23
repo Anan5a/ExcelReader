@@ -2,6 +2,7 @@
 using Microsoft.Data.SqlClient;
 using Models;
 using Services;
+using System.Collections;
 using System.Data;
 using System.Text;
 using System.Text.Json;
@@ -108,6 +109,17 @@ namespace DataAccess
                             {
                                 whereClause.Append($"u.[{pair.Key}] IS NULL");
 
+                            }
+                            else if ((pair.Value is IList || pair.Value is IEnumerable))
+                            {
+                                if (pair.Value.Count > 0)
+                                {
+                                    whereClause.Append($"u.[{pair.Key}] IN ({string.Join(',', pair.Value)})");
+                                }
+                                else
+                                {
+                                    whereClause.Append($"u.[{pair.Key}] IN (0)");
+                                }
                             }
                             else
                             {

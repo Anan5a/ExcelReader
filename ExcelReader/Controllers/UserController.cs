@@ -30,8 +30,7 @@ namespace ExcelReader.Controllers
             IUserRepository userRepository,
             IConfiguration configuration,
             IFileMetadataRepository fileMetadataRepository,
-            IHubContext<SimpleHub> hubContext
-            )
+            IHubContext<SimpleHub> hubContext)
         {
             _webHostEnvironment = webHostEnvironment;
             _userRepository = userRepository;
@@ -188,15 +187,17 @@ namespace ExcelReader.Controllers
         //// Messaging system ////
         [HttpGet]
         [Route("online-users")]
-        //[Authorize(Roles = "user, admin, super_admin")]
-        public async Task<ActionResult<ResponseModel<List<long>?>>> GetOnlineUsers()
+        [Authorize(Roles = "user, admin, super_admin")]
+        public async Task<ActionResult<ResponseModel<IEnumerable<ChatUserLimitedDTO>>>> GetOnlineUsers()
         {
             long.TryParse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var fromUserId);
             //list of connected/online users
+            var onlineUsers = SimpleHub.GetConnectedUserList().Where(id => id != fromUserId).ToList();
+            var userDetails = UserBLL.UsersById(_userRepository, onlineUsers);
 
-            var userDetails =
+            var returnList = from user in userDetails select new ChatUserLimitedDTO { Id = user.Id, Name = user.Name };
 
-            return Ok(CustomResponseMessage.OkCustom<List<long>?>("Query ok.", SimpleHub.GetConnectedUserList()));
+            return Ok(CustomResponseMessage.OkCustom<IEnumerable<ChatUserLimitedDTO>>("Query ok.", returnList));
         }
 
 
