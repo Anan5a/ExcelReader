@@ -8,6 +8,13 @@ using Utility;
 
 var builder = WebApplication.CreateBuilder(args);
 
+//hosting config
+builder.WebHost.ConfigureKestrel(serverOptions =>
+{
+    serverOptions.Limits.MaxConcurrentUpgradedConnections = 2_000;
+    serverOptions.Limits.MaxConcurrentUpgradedConnections = 2_000;
+
+});
 // Add services to the container.
 builder.Services.AddSignalR();
 builder.Services.AddControllers();
