@@ -12,11 +12,14 @@ namespace BLL
         private static readonly string[] AllowedExtensions = { "any", ".xls", ".xlsx" };
         private static long MAX_UPLOAD_SIZE = 2_000_000; //bytes
 
-        public static IEnumerable<FileMetadata> ListFiles(IFileMetadataRepository _fileMetadataRepository, long userId, string? page)
+        public static IEnumerable<FileMetadata> ListFiles(IFileMetadataRepository _fileMetadataRepository, long? userId, string? page)
         {
             Dictionary<string, dynamic> condition = new Dictionary<string, dynamic>();
-            condition["user_id"] = userId;
             condition["deleted_at"] = null;
+            if (userId != null)
+            {
+                condition["user_id"] = userId;
+            }
             var list = _fileMetadataRepository.GetAll(condition);
             return list;
 
@@ -92,18 +95,26 @@ namespace BLL
         }
 
 
-        public static BLLReturnEnum Update(IFileMetadataRepository _fileMetadataRepository, long userId, EditFileDTO editFileDto)
+        public static BLLReturnEnum Update(IFileMetadataRepository _fileMetadataRepository, IUserRepository _userRepository, long userId, EditFileDTO editFileDto, out FileMetadata? fileMetadata)
         {
 
             Dictionary<string, dynamic> condition = new Dictionary<string, dynamic>();
-            condition["user_id"] = userId;
+            //condition["user_id"] = userId;
             condition["id"] = editFileDto.fileId;
 
             var existingFile = _fileMetadataRepository.Get(condition);
+            fileMetadata = null;
+
+            if (existingFile.UserId != userId && !UserBLL.IsUserAdmin(_userRepository, userId))
+            {
+                //not owner or admin
+                return BLLReturnEnum.File_FILE_IS_EMPTY;
+
+            }
 
             if (existingFile == null)
             {
-                return BLLReturnEnum.File_FILE_NOT_FOUND;
+                return BLLReturnEnum.File_FILE_EDIT_NOT_PERMITTED;
 
             }
 
@@ -115,19 +126,23 @@ namespace BLL
 
             if (_fileMetadataRepository.Update(existingFile) != null)
             {
+                fileMetadata = existingFile;
                 return BLLReturnEnum.ACTION_OK;
             }
 
 
             return BLLReturnEnum.ACTION_ERROR;
         }
-        public static FileMetadata? GetFile(IFileMetadataRepository _fileMetadataRepository, long userId, long fileId)
+        public static FileMetadata? GetFile(IUserRepository _userRepository, IFileMetadataRepository _fileMetadataRepository, long userId, long fileId)
         {
 
             Dictionary<string, dynamic> condition = new Dictionary<string, dynamic>();
-            condition["user_id"] = userId;
             condition["id"] = fileId;
 
+            if (!UserBLL.IsUserAdmin(_userRepository, userId))
+            {
+                condition["user_id"] = userId;
+            }
             var existingFile = _fileMetadataRepository.Get(condition);
 
             return existingFile;

@@ -30,6 +30,7 @@
         File_FILE_TYPE_NOT_ALLOWED,
         File_FILE_SIZE_TOO_LARGE,
         File_FILE_NOT_FOUND,
+        File_FILE_EDIT_NOT_PERMITTED,
 
 
     }

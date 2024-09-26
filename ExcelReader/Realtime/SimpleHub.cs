@@ -1,6 +1,5 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
-using Services;
 using System.Collections.Concurrent;
 
 namespace ExcelReader.Realtime
@@ -28,8 +27,7 @@ namespace ExcelReader.Realtime
 
         public async Task SendMessage(string message)
         {
-            ErrorConsole.Log($"Dispatching message: {Context.ConnectionId}: {message}, connId: {Context.ConnectionId}");
-            await Clients.All.SendAsync("PublicChannel", Context.ConnectionId, message);
+            await Clients.All.SendAsync("PublicChannel", message);
         }
 
         public static List<long> GetConnectedUserList()

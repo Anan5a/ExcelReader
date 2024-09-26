@@ -48,11 +48,11 @@ namespace ExcelReader.Controllers
         [Route("list")]
         [Authorize(Roles = "user, admin, super_admin")]
 
-        public async Task<ActionResult<ResponseModel<IEnumerable<FileMetadata>>>> ListFiles([FromQuery] string? page)
+        public async Task<ActionResult<ResponseModel<IEnumerable<FileMetadata>>>> ListFiles([FromQuery] string? page, [FromQuery] string? systemFiles)
         {
             long.TryParse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var userId);
 
-            var list = FilesBLL.ListFiles(_fileMetadataRepository, userId, null);
+            var list = FilesBLL.ListFiles(_fileMetadataRepository, string.IsNullOrEmpty(systemFiles) ? userId : null, null);
 
             return Ok(CustomResponseMessage.OkCustom<IEnumerable<FileMetadata>>("Query successful.", list));
 
@@ -66,7 +66,7 @@ namespace ExcelReader.Controllers
         {
             long.TryParse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var userId);
 
-            var fileMetadata = FilesBLL.GetFile(_fileMetadataRepository, userId, fileId);
+            var fileMetadata = FilesBLL.GetFile(_userRepository, _fileMetadataRepository, userId, fileId);
 
             return Ok(CustomResponseMessage.OkCustom<FileMetadata>("Query successful.", fileMetadata));
 
@@ -130,26 +130,33 @@ namespace ExcelReader.Controllers
             //check file type
             long.TryParse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var userId);
 
-            var updateState = FilesBLL.Update(_fileMetadataRepository, userId, editFileDto);
+            var updateState = FilesBLL.Update(_fileMetadataRepository, _userRepository, userId, editFileDto, out var updatedFile);
+
             switch (updateState)
             {
                 case BLLReturnEnum.File_FILE_NOT_FOUND:
                     return NotFound(CustomResponseMessage.ErrorCustom("no file", "File not found by the user"));
 
                 case BLLReturnEnum.ACTION_OK:
-                    await _hubContext.Clients.User(userId.ToString()).SendAsync("FileChannel", new FileChannelMessage
+                    await _hubContext.Clients.User(updatedFile!.UserId.ToString()).SendAsync("FileChannel", new FileChannelMessage
                     {
                         FileId = editFileDto.fileId,
                         WasFileModified = true,
                         ShouldRefetch = true,
                     });
 
-
-
                     return Ok(CustomResponseMessage.OkCustom<string>("File updated.", "File name was changed successfully."));
 
+                case BLLReturnEnum.File_FILE_EDIT_NOT_PERMITTED:
+                    await _hubContext.Clients.User(userId.ToString()).SendAsync("FileChannel", new FileChannelMessage
+                    {
+                        FileId = editFileDto.fileId,
+                        Message = "File cannot be modified, Insufficient permission."
+                    });
+
+                    return Ok(CustomResponseMessage.OkCustom<string>("File updated.", "File name was changed successfully."));
                 default:
-                    return BadRequest(CustomResponseMessage.ErrorCustom("Bad Request", "Failed to update file, try again later"));
+                    return BadRequest(CustomResponseMessage.ErrorCustom("Bad Request", "Failed to update file, try again later" + updateState.ToString()));
             }
         }
 
@@ -164,10 +171,15 @@ namespace ExcelReader.Controllers
         public async Task<ActionResult<ResponseModel<string?>>> ExportLink([FromBody] ExportRequestDTO exportRequestDTO)
         {
             long.TryParse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var userId);
+            var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
 
             Dictionary<string, dynamic> condition = new Dictionary<string, dynamic>();
-            condition["user_id"] = userId;
             condition["id"] = exportRequestDTO.FileId;
+            if (userRole != UserRoles.Admin && userRole != UserRoles.SuperAdmin)
+            {
+                condition["user_id"] = userId;
+
+            }
 
             var fileToDownload = _fileMetadataRepository.Get(condition);
             if (fileToDownload == null)
@@ -244,11 +256,15 @@ namespace ExcelReader.Controllers
         public async Task<ActionResult<ResponseModel<string?>>> DeleteFile(long fileId)
         {
             long.TryParse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var userId);
+            var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
 
             Dictionary<string, dynamic> condition = new Dictionary<string, dynamic>();
-            condition["user_id"] = userId;
             condition["id"] = fileId;
+            if (userRole != UserRoles.Admin && userRole != UserRoles.SuperAdmin)
+            {
+                condition["user_id"] = userId;
 
+            }
             var fileToDelete = _fileMetadataRepository.Get(condition);
 
             if (fileToDelete == null)
@@ -269,7 +285,7 @@ namespace ExcelReader.Controllers
 
             System.IO.File.Delete(filePathDisk);
 
-            await _hubContext.Clients.User(userId.ToString()).SendAsync("FileChannel", new FileChannelMessage
+            await _hubContext.Clients.User(fileToDelete.UserId.ToString()).SendAsync("FileChannel", new FileChannelMessage
             {
                 FileId = fileToDelete.Id,
                 WasFileModified = false,

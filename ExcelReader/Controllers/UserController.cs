@@ -41,7 +41,19 @@ namespace ExcelReader.Controllers
 
 
 
+        [HttpGet]
+        [Route("list")]
+        [Authorize(Roles = "admin, super_admin")]
+        public async Task<ActionResult<ResponseModel<IEnumerable<User>>>> UsersList()
+        {
 
+            long.TryParse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var userId);
+
+            var users = _userRepository.GetAll(null, resolveRelation: true);
+            //we don't want to return the currently logged in user
+            var filtered = users.Where(user => user.Id != userId);
+            return Ok(CustomResponseMessage.OkCustom<IEnumerable<User>>("Successful query", users));
+        }
 
         [HttpGet]
         [Route("dashboard")]
@@ -195,11 +207,21 @@ namespace ExcelReader.Controllers
         public async Task<ActionResult<ResponseModel<IEnumerable<ChatUserLimitedDTO>>>> GetOnlineUsers()
         {
             long.TryParse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var fromUserId);
+            var fromUserRole = User.FindFirst(ClaimTypes.Role)?.Value;
             //list of connected/online users
             var onlineUsers = SimpleHub.GetConnectedUserList().Where(id => id != fromUserId).ToList();
             var userDetails = UserBLL.UsersById(_userRepository, onlineUsers);
+            //filter list based on user or admin
 
-            var returnList = from user in userDetails select new ChatUserLimitedDTO { Id = user.Id, Name = user.Name };
+            var returnList = from user in userDetails
+                             where
+                             (
+                                fromUserRole == UserRoles.Admin ||
+                                fromUserRole == UserRoles.SuperAdmin ||
+                                user.Role.RoleName == UserRoles.Admin ||
+                                user.Role.RoleName == UserRoles.SuperAdmin
+                             )
+                             select new ChatUserLimitedDTO { Id = user.Id, Name = user.Name };
 
             return Ok(CustomResponseMessage.OkCustom<IEnumerable<ChatUserLimitedDTO>>("Query ok.", returnList));
         }

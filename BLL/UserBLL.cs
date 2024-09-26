@@ -179,14 +179,26 @@ namespace BLL
             return new AuthResponse { Token = token2, user = user };
         }
 
-        public static IEnumerable<User> UsersById(IUserRepository _userRepository, IEnumerable<long> userIds)
+        public static IEnumerable<User> UsersById(IUserRepository _userRepository, IEnumerable<long> userIds, bool resolveRelation = true)
         {
             Dictionary<string, dynamic> condition = new Dictionary<string, dynamic>();
             condition["id"] = userIds;
 
-            return _userRepository.GetAll(condition, resolveRelation: true);
+            return _userRepository.GetAll(condition, resolveRelation: resolveRelation);
 
 
         }
+
+        public static bool IsUserAdmin(IUserRepository _userRepository, long userId)
+        {
+            var user = UserBLL.UsersById(_userRepository, new List<long> { userId }).FirstOrDefault();
+            return user?.Role?.RoleName != UserRoles.Admin || user?.Role?.RoleName != UserRoles.SuperAdmin;
+        }
+        public static bool IsUserSuperAdmin(IUserRepository _userRepository, long userId)
+        {
+            var user = UserBLL.UsersById(_userRepository, new List<long> { userId }).FirstOrDefault();
+            return user?.Role?.RoleName != UserRoles.SuperAdmin;
+        }
+
     }
 }
