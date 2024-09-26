@@ -156,7 +156,7 @@ namespace ExcelReader.Controllers
 
                     return Ok(CustomResponseMessage.OkCustom<string>("File updated.", "File name was changed successfully."));
                 default:
-                    return BadRequest(CustomResponseMessage.ErrorCustom("Bad Request", "Failed to update file, try again later" + updateState.ToString()));
+                    return BadRequest(CustomResponseMessage.ErrorCustom("Bad Request", "Failed to update file, try again later"));
             }
         }
 
