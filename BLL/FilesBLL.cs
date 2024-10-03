@@ -20,7 +20,7 @@ namespace BLL
             {
                 condition["user_id"] = userId;
             }
-            var list = _fileMetadataRepository.GetAll(condition);
+            var list = _fileMetadataRepository.GetAll(condition, resolveRelation: true);
             return list;
 
         }

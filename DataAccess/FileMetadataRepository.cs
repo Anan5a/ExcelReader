@@ -215,7 +215,8 @@ namespace DataAccess
                    f.[filesize_bytes],
                    f.[created_at] , 
                    f.[updated_at] , 
-                   f.[deleted_at] 
+                   f.[deleted_at], 
+                   u.[name] as user_name
             FROM [{tableName}] f
             INNER JOIN [users] u ON f.[user_id] = u.[id]";
                     }
@@ -260,6 +261,17 @@ namespace DataAccess
                                     UpdatedAt = row["updated_at"] == DBNull.Value ? (DateTime?)null : Convert.ToDateTime(row["updated_at"]),
                                     DeletedAt = row["deleted_at"] == DBNull.Value ? (DateTime?)null : Convert.ToDateTime(row["deleted_at"])
                                 };
+
+
+                                if (resolveRelation)
+                                {
+                                    User user = new User
+                                    {
+                                        Id = Convert.ToInt64(row["user_id"]),
+                                        Name = Convert.ToString(row["user_name"]),
+                                    };
+                                    fileMetadata.User = user;
+                                }
 
                                 fileMetadatas.Add(fileMetadata);
                             }

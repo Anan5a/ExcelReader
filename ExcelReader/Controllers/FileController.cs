@@ -51,6 +51,13 @@ namespace ExcelReader.Controllers
         public async Task<ActionResult<ResponseModel<IEnumerable<FileMetadata>>>> ListFiles([FromQuery] string? page, [FromQuery] string? systemFiles)
         {
             long.TryParse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var userId);
+            var role = User.FindFirst(ClaimTypes.Role)?.Value;
+            if (!string.IsNullOrEmpty(systemFiles) && (role != UserRoles.Admin && role != UserRoles.SuperAdmin))
+            {
+                return Unauthorized(CustomResponseMessage.ErrorCustom("Invalid request", "Insufficient permission for this request"));
+            }
+
+
 
             var list = FilesBLL.ListFiles(_fileMetadataRepository, string.IsNullOrEmpty(systemFiles) ? userId : null, null);
 
@@ -98,13 +105,12 @@ namespace ExcelReader.Controllers
                     return BadRequest(CustomResponseMessage.ErrorCustom("file error", "The file exceeds maximum allowed size"));
 
                 case BLLReturnEnum.ACTION_OK:
-                    await _hubContext.Clients.User(userId.ToString()).SendAsync("FileChannel", new FileChannelMessage
+                    await _hubContext.Clients.Clients(userId.ToString()).SendAsync("FileChannel", new FileChannelMessage
                     {
                         FileId = uploadedFile.Id,
                         WasFileModified = false,
                         ShouldRefetch = false,
                         FileMetadata = uploadedFile,
-
                     });
 
                     return Ok(CustomResponseMessage.OkCustom<ulong?>("File uploaded.", null));
@@ -138,7 +144,12 @@ namespace ExcelReader.Controllers
                     return NotFound(CustomResponseMessage.ErrorCustom("no file", "File not found by the user"));
 
                 case BLLReturnEnum.ACTION_OK:
-                    await _hubContext.Clients.User(updatedFile!.UserId.ToString()).SendAsync("FileChannel", new FileChannelMessage
+                    var toIds = new List<string> { updatedFile.UserId.ToString() };
+                    if (userId != updatedFile.UserId)
+                    {
+                        toIds.Append(userId.ToString());
+                    }
+                    await _hubContext.Clients.Clients(toIds).SendAsync("FileChannel", new FileChannelMessage
                     {
                         FileId = editFileDto.fileId,
                         WasFileModified = true,
@@ -285,7 +296,14 @@ namespace ExcelReader.Controllers
 
             System.IO.File.Delete(filePathDisk);
 
-            await _hubContext.Clients.User(fileToDelete.UserId.ToString()).SendAsync("FileChannel", new FileChannelMessage
+            var toIds = new List<string> { fileToDelete.UserId.ToString() };
+            if (userId != fileToDelete.UserId)
+            {
+                toIds.Append(userId.ToString());
+            }
+
+
+            await _hubContext.Clients.Clients(toIds).SendAsync("FileChannel", new FileChannelMessage
             {
                 FileId = fileToDelete.Id,
                 WasFileModified = false,

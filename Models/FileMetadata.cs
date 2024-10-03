@@ -36,13 +36,13 @@ namespace Models
 
 
 
-        public Role? User { get; set; }
+        public User? User { get; set; }
 
         public FileMetadata() { }
 
         public FileMetadata(long id, string fileName, string fileNameSystem, long fileOwner,
                             DateTime createdAt, DateTime? updatedAt, DateTime? deletedAt,
-                            Role user, Role role, long fsb)
+                            User user, Role role, long fsb)
         {
             Id = id;
             FileName = fileName;
