@@ -286,8 +286,6 @@ namespace DataAccess
             return fileMetadatas;
         }
 
-
-
         public new FileMetadata? Update(FileMetadata fileMetadata)
         {
             try
