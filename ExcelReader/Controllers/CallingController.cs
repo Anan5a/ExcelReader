@@ -103,7 +103,8 @@ namespace ExcelReader.Controllers
             await _hubContext.Clients.User(target.ToString()).SendAsync("CallingChannel", new CallingChannelMessage
             {
                 CallData = rtcData,
-                Metadata = rtcConnRequest
+                Metadata = rtcConnRequest,
+                Message="ICE Data from remote"
             });
             return Ok(CustomResponseMessage.OkCustom("Offer sent", true));
         }
