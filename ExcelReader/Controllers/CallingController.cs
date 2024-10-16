@@ -106,7 +106,7 @@ namespace ExcelReader.Controllers
                 Metadata = rtcConnRequest,
                 Message="ICE Data from remote"
             });
-            return Ok(CustomResponseMessage.OkCustom("Offer sent", true));
+            return Ok(CustomResponseMessage.OkCustom("ICE sent", true));
         }
 
 
