@@ -38,6 +38,64 @@ namespace ExcelReader.Controllers
         }
 
         [HttpPost]
+        [Route("offerCallRequest")]
+        [Authorize(Roles = "user, admin, super_admin")]
+
+        public async Task<ActionResult<ResponseModel<bool>>> OfferCallRequest([FromBody] RTCConnModel rtcConnRequest)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest();
+            }
+            long.TryParse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var userId);
+            var userName = User.FindFirst(ClaimTypes.Name)?.Value;
+
+            var target = rtcConnRequest.TargetUserId;
+
+            rtcConnRequest.TargetUserId = Convert.ToInt32(userId);
+            rtcConnRequest.TargetUserName = userName!;
+            //data fromat==>> <req>:<id>,
+            var data=rtcConnRequest.Data;
+            rtcConnRequest.Data = "";
+            await _hubContext.Clients.User(target.ToString()).SendAsync("CallingChannel", new CallingChannelMessage
+            {
+                CallData = data,
+                Metadata = rtcConnRequest
+            });
+            return Ok(CustomResponseMessage.OkCustom("Call Offer sent", true));
+
+        }
+
+        [HttpPost]
+        [Route("offerCallRequestAnswer")]
+        [Authorize(Roles = "user, admin, super_admin")]
+
+        public async Task<ActionResult<ResponseModel<bool>>> OfferCallRequestAnswer([FromBody] RTCConnModel rtcConnRequest)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest();
+            }
+            long.TryParse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var userId);
+            var userName = User.FindFirst(ClaimTypes.Name)?.Value;
+
+            var target = rtcConnRequest.TargetUserId;
+
+            rtcConnRequest.TargetUserId = Convert.ToInt32(userId);
+            rtcConnRequest.TargetUserName = userName!;
+            //data fromat==>> <req>:<id>,
+            var data = rtcConnRequest.Data;
+            rtcConnRequest.Data = "";
+            await _hubContext.Clients.User(target.ToString()).SendAsync("CallingChannel", new CallingChannelMessage
+            {
+                CallData = data,
+                Metadata = rtcConnRequest
+            });
+            return Ok(CustomResponseMessage.OkCustom("Call Offer sent", true));
+
+        }
+
+        [HttpPost]
         [Route("offerCall")]
         [Authorize(Roles = "user, admin, super_admin")]
 
@@ -48,9 +106,13 @@ namespace ExcelReader.Controllers
                 return BadRequest();
             }
             long.TryParse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var userId);
+            var userName = User.FindFirst(ClaimTypes.Name)?.Value;
+
             var target = rtcConnRequest.TargetUserId;
 
             rtcConnRequest.TargetUserId = Convert.ToInt32(userId);
+            rtcConnRequest.TargetUserName = userName!;
+
             var rtcData = rtcConnRequest.Data;
             rtcConnRequest.Data = "";
             await _hubContext.Clients.User(target.ToString()).SendAsync("CallingChannel", new CallingChannelMessage
@@ -58,7 +120,7 @@ namespace ExcelReader.Controllers
                 CallData = rtcData,
                 Metadata = rtcConnRequest
             });
-            return Ok(CustomResponseMessage.OkCustom("Offer sent", true));
+            return Ok(CustomResponseMessage.OkCustom("RTC Offer sent", true));
 
         }
 
@@ -73,6 +135,8 @@ namespace ExcelReader.Controllers
                 return BadRequest();
             }
             long.TryParse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var userId);
+            var userName = User.FindFirst(ClaimTypes.Name)?.Value;
+            rtcConnRequest.TargetUserName = userName;
             var target = rtcConnRequest.TargetUserId;
 
             rtcConnRequest.TargetUserId = Convert.ToInt32(userId);
@@ -83,7 +147,7 @@ namespace ExcelReader.Controllers
                 CallData = rtcData,
                 Metadata = rtcConnRequest
             });
-            return Ok(CustomResponseMessage.OkCustom("Answer sent", true));
+            return Ok(CustomResponseMessage.OkCustom("RTC Answer sent", true));
         }
         [HttpPost]
         [Route("sendICECandidate")]
@@ -96,8 +160,11 @@ namespace ExcelReader.Controllers
                 return BadRequest();
             }
             long.TryParse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var userId);
+            var userName = User.FindFirst(ClaimTypes.Name)?.Value;
+
             var target = rtcConnRequest.TargetUserId;
             rtcConnRequest.TargetUserId = Convert.ToInt32(userId);
+            rtcConnRequest.TargetUserName = userName;
             var rtcData = rtcConnRequest.Data;
             rtcConnRequest.Data = "";
             await _hubContext.Clients.User(target.ToString()).SendAsync("CallingChannel", new CallingChannelMessage
@@ -106,7 +173,7 @@ namespace ExcelReader.Controllers
                 Metadata = rtcConnRequest,
                 Message="ICE Data from remote"
             });
-            return Ok(CustomResponseMessage.OkCustom("ICE sent", true));
+            return Ok(CustomResponseMessage.OkCustom("RTC ICE sent", true));
         }
 
 

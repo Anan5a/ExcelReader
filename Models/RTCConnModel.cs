@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Models
 {
@@ -6,6 +7,8 @@ namespace Models
     {
         [Required]
         public int TargetUserId { get; set; }
+        [AllowNull]
+        public string? TargetUserName { get; set; }
         [Required]
         public string Data { get; set; }
 
