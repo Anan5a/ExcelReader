@@ -4,6 +4,7 @@ using System.Text.Json.Serialization;
 
 namespace Models
 {
+
     public class User
     {
         [Key]
@@ -26,7 +27,7 @@ namespace Models
 
         [Required]
         [BindNever]
-        public DateTime CreatedAt { get; set; }
+        public DateTime? CreatedAt { get; set; }
 
         [BindNever]
         public DateTime? UpdatedAt { get; set; }
