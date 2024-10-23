@@ -113,10 +113,11 @@ if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
+    //prod *must* use real https certs, this bypass https in prod,docker container
+    app.UseHttpsRedirection();
 }
 app.UseCors("AllowLocalDevOrigin");
 
-app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseAuthentication();
 app.UseAuthorization();
