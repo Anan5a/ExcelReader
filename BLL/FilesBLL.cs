@@ -56,9 +56,9 @@ namespace BLL
             string fileDirectory = Path.Combine(baseFileDirectory, "uploads");
 
             //check and create directory if non existent
-            if (!Directory.Exists(baseFileDirectory))
+            if (!Directory.Exists(fileDirectory))
             {
-                Directory.CreateDirectory(baseFileDirectory);
+                Directory.CreateDirectory(fileDirectory);
             }
 
             var filePathDisk = Path.Combine(fileDirectory, fileNameSystem);
