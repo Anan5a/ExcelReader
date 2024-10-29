@@ -54,6 +54,13 @@ namespace BLL
 
             string baseFileDirectory = _webHostEnvironment.WebRootPath;
             string fileDirectory = Path.Combine(baseFileDirectory, "uploads");
+
+            //check and create directory if non existent
+            if (!Directory.Exists(baseFileDirectory))
+            {
+                Directory.CreateDirectory(baseFileDirectory);
+            }
+
             var filePathDisk = Path.Combine(fileDirectory, fileNameSystem);
 
 
