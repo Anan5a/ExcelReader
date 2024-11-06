@@ -1,6 +1,8 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using ExcelReader.Queues;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 using System.Collections.Concurrent;
+using System.Security.Claims;
 
 namespace ExcelReader.Realtime
 {
@@ -8,11 +10,22 @@ namespace ExcelReader.Realtime
     public class SimpleHub : Hub
     {
         private static readonly ConcurrentDictionary<string, string> _userConnections = new();
-
+        private readonly AgentQueue agentQueue;
+        public SimpleHub(AgentQueue agentQueue)
+        {
+            this.agentQueue = agentQueue;
+        }
         public override Task OnConnectedAsync()
         {
             var userId = Context.UserIdentifier;
             _userConnections.TryAdd(userId, Context.ConnectionId);
+
+            if (isUserAdmin())
+            {
+                //add to agent list
+                agentQueue.AddNewAgent(userId);
+            }
+
             return base.OnConnectedAsync();
         }
 
@@ -20,10 +33,12 @@ namespace ExcelReader.Realtime
         {
             var userId = Context.UserIdentifier;
             _userConnections.TryRemove(userId, out _);
+            if (isUserAdmin())
+            {
+                agentQueue.RemoveAgent(userId);
+            }
             return base.OnDisconnectedAsync(exception);
         }
-
-
 
         public async Task SendMessage(string message)
         {
@@ -35,6 +50,11 @@ namespace ExcelReader.Realtime
             return _userConnections.Keys.Select(long.Parse).ToList();
         }
 
-
+        private bool isUserAdmin()
+        {
+            var userRole = Context?.User?.Claims
+                .FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
+            return userRole == "admin"|| userRole == "super_admin";
+        }
     }
 }

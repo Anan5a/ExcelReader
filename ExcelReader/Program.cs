@@ -1,8 +1,11 @@
 using DataAccess;
+using ExcelReader.BackgroundWorkers;
+using ExcelReader.Queues;
 using ExcelReader.Realtime;
 using IRepository;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
+using Models;
 using System.Text;
 using System.Text.Json.Serialization;
 using Utility;
@@ -13,8 +16,6 @@ var builder = WebApplication.CreateBuilder(args);
 builder.WebHost.ConfigureKestrel(serverOptions =>
 {
     serverOptions.Limits.MaxConcurrentUpgradedConnections = 2_000;
-    serverOptions.Limits.MaxConcurrentUpgradedConnections = 2_000;
-
 });
 // Add services to the container.
 builder.Services.AddSignalR();
@@ -40,7 +41,8 @@ builder.Services.AddSingleton<IMyDbConnection>(provider =>
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IFileMetadataRepository, FileMetadataRepository>();
 builder.Services.AddScoped<IRoleRepository, RoleRepository>();
-
+builder.Services.AddSingleton<ICallQueue<CallQueueModel>,CallQueue<CallQueueModel>>();
+builder.Services.AddSingleton<AgentQueue>();
 
 builder.Services.AddCors(options =>
 {
@@ -49,6 +51,7 @@ builder.Services.AddCors(options =>
             "http://127.0.0.1:4200",
             "https://127.0.0.1:4200",
             "http://localhost:4200",
+            "https://localhost:4200",
             "http://192.168.100.52:4200",
             "https://192.168.100.52:4200",
             "http://192.168.0.101:4200",
@@ -106,6 +109,7 @@ builder.Services.AddAuthorization(options =>
         policy.RequireRole(UserRoles.SuperAdmin));
 });
 
+builder.Services.AddHostedService<BackgroundCallQueueProcessor>();
 
 var app = builder.Build();
 
