@@ -1,6 +1,7 @@
 ﻿using ExcelReader.Queues;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
+using Models;
 using System.Collections.Concurrent;
 using System.Security.Claims;
 
@@ -11,9 +12,15 @@ namespace ExcelReader.Realtime
     {
         private static readonly ConcurrentDictionary<string, string> _userConnections = new();
         private readonly AgentQueue agentQueue;
-        public SimpleHub(AgentQueue agentQueue)
+        private readonly ICallQueue<CallQueueModel> _callQueue;
+
+        public SimpleHub(
+            AgentQueue agentQueue,
+            ICallQueue<CallQueueModel> callQueue
+            )
         {
             this.agentQueue = agentQueue;
+            _callQueue = callQueue;
         }
         public override Task OnConnectedAsync()
         {
@@ -36,6 +43,11 @@ namespace ExcelReader.Realtime
             if (isUserAdmin())
             {
                 agentQueue.RemoveAgent(userId);
+            }
+            else
+            {
+                //remove user from call queue when disconnected
+                _callQueue.TryRemoveByUserId(userId);
             }
             return base.OnDisconnectedAsync(exception);
         }

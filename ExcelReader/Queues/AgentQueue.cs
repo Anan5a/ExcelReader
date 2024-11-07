@@ -1,4 +1,5 @@
-﻿using System.Collections.Concurrent;
+﻿using Services;
+using System.Collections.Concurrent;
 
 namespace ExcelReader.Queues
 {
@@ -36,6 +37,8 @@ namespace ExcelReader.Queues
         }
         public bool FreeAgentFromCall(string agentId)
         {
+            ErrorConsole.Log($"I: Release agent={agentId} from call");
+
             try
             {
                 agentList[agentId] = 0;
@@ -65,5 +68,13 @@ namespace ExcelReader.Queues
             return addValue == CustomerId;
         }
 
+        public string GetAgentForUser(int userId)
+        {
+            return agentList.Where(item => item.Value.Equals(userId)).Select(it => it.Key).FirstOrDefault();
+        }
+        public int GetUserForAgent(string agentId)
+        {
+            return agentList.Where(item => item.Key.Equals(agentId)).Select(it => it.Value).FirstOrDefault();
+        }
     }
 }

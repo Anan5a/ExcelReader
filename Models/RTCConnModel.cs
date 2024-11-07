@@ -5,8 +5,8 @@ namespace Models
 {
     public class RTCConnModel
     {
-        [Required]
-        public int TargetUserId { get; set; }
+        [AllowNull]
+        public int? TargetUserId { get; set; }
         [AllowNull]
         public string? TargetUserName { get; set; }
         [Required]

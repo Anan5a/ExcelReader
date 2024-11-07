@@ -1,4 +1,5 @@
-﻿using ExcelReader.Queues;
+﻿using DocumentFormat.OpenXml.InkML;
+using ExcelReader.Queues;
 using ExcelReader.Realtime;
 using IRepository;
 using Microsoft.AspNetCore.Authorization;
@@ -23,6 +24,7 @@ namespace ExcelReader.Controllers
         private readonly IFileMetadataRepository _fileMetadataRepository;
         private readonly IConfiguration _configuration;
         private readonly ICallQueue<CallQueueModel> _callQueue;
+        private readonly AgentQueue _agentQueue;
 
         private IHubContext<SimpleHub> _hubContext;
         public CallingController(
@@ -31,7 +33,8 @@ namespace ExcelReader.Controllers
            IFileMetadataRepository fileMetadataRepository,
            IConfiguration configuration,
            IHubContext<SimpleHub> hubContext,
-           ICallQueue<CallQueueModel> callQueue)
+           ICallQueue<CallQueueModel> callQueue,
+           AgentQueue agentQueue)
         {
             _webHostEnvironment = webHostEnvironment;
             _userRepository = userRepository;
@@ -39,6 +42,7 @@ namespace ExcelReader.Controllers
             _configuration = configuration;
             _hubContext = hubContext;
             _callQueue = callQueue;
+            _agentQueue = agentQueue;
         }
 
 
@@ -69,8 +73,12 @@ namespace ExcelReader.Controllers
             }
             var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             var userName = User.FindFirst(ClaimTypes.Name)?.Value;
+            //we don't want to enqueue admins to call
+            if (isUserAdmin())
+            {
+                return BadRequest(CustomResponseMessage.ErrorCustom("call error", "Agent/Admins cannot enter customer queue."));
+            }
             //add user call to queue
-
             _callQueue.Enqueue(new CallQueueModel
             {
                 CallId = rtcConnRequest.Data,
@@ -82,24 +90,6 @@ namespace ExcelReader.Controllers
 
             return Ok(CustomResponseMessage.OkCustom("Call Offer sent", true));
 
-
-
-
-
-
-
-            var target = rtcConnRequest.TargetUserId;
-
-            rtcConnRequest.TargetUserId = Convert.ToInt32(userId);
-            rtcConnRequest.TargetUserName = userName!;
-            //data fromat==>> <req>:<id>,
-            var data = rtcConnRequest.Data;
-            rtcConnRequest.Data = "";
-            await _hubContext.Clients.User(target.ToString()).SendAsync("CallingChannel", new CallingChannelMessage
-            {
-                CallData = data,
-                Metadata = rtcConnRequest
-            });
 
         }
 
@@ -113,7 +103,7 @@ namespace ExcelReader.Controllers
             {
                 return BadRequest();
             }
-            long.TryParse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var userId);
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             var userName = User.FindFirst(ClaimTypes.Name)?.Value;
 
             var target = rtcConnRequest.TargetUserId;
@@ -123,6 +113,22 @@ namespace ExcelReader.Controllers
             //data fromat==>> <req>:<id>,
             var data = rtcConnRequest.Data;
             rtcConnRequest.Data = "";
+
+            //if rejected, free agent from queue
+            var el = data.Split(":");
+            if (
+                el.ElementAt(el.Length - 1).Contains("reject") ||
+                el.ElementAt(el.Length - 1).Contains("end")
+            )
+            {
+                _callQueue.TryRemoveByUserId(userId);
+                _agentQueue.FreeAgentFromCall(_agentQueue.GetAgentForUser(int.Parse(userId)));
+            }
+            //
+
+
+
+
             await _hubContext.Clients.User(target.ToString()).SendAsync("CallingChannel", new CallingChannelMessage
             {
                 CallData = data,
@@ -144,15 +150,28 @@ namespace ExcelReader.Controllers
             }
             long.TryParse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var userId);
             var userName = User.FindFirst(ClaimTypes.Name)?.Value;
+            //get the agent for this user
+            string target;
+            if (rtcConnRequest.TargetUserId != null)
+            {
+                target = rtcConnRequest.TargetUserId.ToString();
+            }
+            else
+            {
+                target = _agentQueue.GetAgentForUser(Convert.ToInt32(userId));
+            }
 
-            var target = rtcConnRequest.TargetUserId;
+
+
+
+
 
             rtcConnRequest.TargetUserId = Convert.ToInt32(userId);
             rtcConnRequest.TargetUserName = userName!;
 
             var rtcData = rtcConnRequest.Data;
             rtcConnRequest.Data = "";
-            await _hubContext.Clients.User(target.ToString()).SendAsync("CallingChannel", new CallingChannelMessage
+            await _hubContext.Clients.User(target).SendAsync("CallingChannel", new CallingChannelMessage
             {
                 CallData = rtcData,
                 Metadata = rtcConnRequest
@@ -200,12 +219,21 @@ namespace ExcelReader.Controllers
             long.TryParse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var userId);
             var userName = User.FindFirst(ClaimTypes.Name)?.Value;
 
-            var target = rtcConnRequest.TargetUserId;
+            var target = rtcConnRequest.TargetUserId.ToString();
+            if (rtcConnRequest.TargetUserId == null ||rtcConnRequest.TargetUserId==0)
+            {
+                //pull from queue
+                target = _agentQueue.GetAgentForUser(Convert.ToInt32(userId));
+            }
+
+
+
+
             rtcConnRequest.TargetUserId = Convert.ToInt32(userId);
             rtcConnRequest.TargetUserName = userName;
             var rtcData = rtcConnRequest.Data;
             rtcConnRequest.Data = "";
-            await _hubContext.Clients.User(target.ToString()).SendAsync("CallingChannel", new CallingChannelMessage
+            await _hubContext.Clients.User(target).SendAsync("CallingChannel", new CallingChannelMessage
             {
                 CallData = rtcData,
                 Metadata = rtcConnRequest,
@@ -214,6 +242,11 @@ namespace ExcelReader.Controllers
             return Ok(CustomResponseMessage.OkCustom("RTC ICE sent", true));
         }
 
-
+        private bool isUserAdmin()
+        {
+            var userRole = User?.Claims
+                .FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
+            return userRole == "admin" || userRole == "super_admin";
+        }
     }
 }

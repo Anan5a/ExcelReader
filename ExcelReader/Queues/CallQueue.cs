@@ -12,18 +12,21 @@ namespace ExcelReader.Queues
         Task<T?> DequeueAsync();
         Task<T?> PeekAsync();
         int Count { get; }
+        bool TryRemoveByUserId(string item);
+
+
     }
     public class CallQueue<T> : ICallQueue<T> where T : class
     {
         private readonly ConcurrentDictionary<int, T> _queue = new ConcurrentDictionary<int, T>();
-        private readonly ConcurrentBag<string> inQueueUsers = new();
+        private readonly ConcurrentDictionary<string, string> inQueueUsers = new();
         private readonly SemaphoreSlim _signal = new SemaphoreSlim(0);
         private int _counter = 0;
 
         public bool Enqueue(T item)
         {
             if (item == null) throw new ArgumentNullException(nameof(item));
-            if (item is CallQueueModel model && inQueueUsers.Contains(model.UserId))
+            if (item is CallQueueModel model && inQueueUsers.ContainsKey(model.UserId))
             {
                 //already in queue, ignore
                 return false;
@@ -34,7 +37,7 @@ namespace ExcelReader.Queues
             }
             int key = Interlocked.Increment(ref _counter);
             _queue[key] = item;
-            inQueueUsers.Add((item as CallQueueModel).UserId);
+            inQueueUsers.TryAdd((item as CallQueueModel).UserId, "");
             _signal.Release();
             return true;
         }
@@ -47,12 +50,14 @@ namespace ExcelReader.Queues
 
             var firstItem = _queue.OrderBy(kvp => kvp.Key).FirstOrDefault();
             _queue.TryRemove(firstItem.Key, out var item);
+            inQueueUsers.Remove((item as CallQueueModel).UserId, out var _);
             return item;
         }
 
         public bool TryRemoveByUserId(string item)
         {
-            var kvp = _queue.FirstOrDefault(pair => pair.Key.Equals(int.Parse(item)));
+            ErrorConsole.Log($"I: Remove user={item} from queue");
+            var kvp = _queue.FirstOrDefault(pair => (pair.Value as CallQueueModel).UserId.Equals(item));
             return kvp.Key != 0 && _queue.TryRemove(kvp.Key, out _);
         }
 
