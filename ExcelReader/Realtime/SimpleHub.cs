@@ -12,11 +12,11 @@ namespace ExcelReader.Realtime
     {
         private static readonly ConcurrentDictionary<string, string> _userConnections = new();
         private readonly AgentQueue agentQueue;
-        private readonly ICallQueue<CallQueueModel> _callQueue;
+        private readonly ICallQueue<QueueModel> _callQueue;
 
         public SimpleHub(
             AgentQueue agentQueue,
-            ICallQueue<CallQueueModel> callQueue
+            ICallQueue<QueueModel> callQueue
             )
         {
             this.agentQueue = agentQueue;
@@ -25,12 +25,13 @@ namespace ExcelReader.Realtime
         public override Task OnConnectedAsync()
         {
             var userId = Context.UserIdentifier;
+            var userName = Context?.User?.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Name)?.Value;
             _userConnections.TryAdd(userId, Context.ConnectionId);
 
             if (isUserAdmin())
             {
                 //add to agent list
-                agentQueue.AddNewAgent(userId);
+                agentQueue.AddNewAgent(userId, userName);
             }
 
             return base.OnConnectedAsync();
@@ -42,11 +43,14 @@ namespace ExcelReader.Realtime
             _userConnections.TryRemove(userId, out _);
             if (isUserAdmin())
             {
+                _callQueue.TryRemoveByUserId(agentQueue.GetUserForAgent(userId.ToString()).ToString());
                 agentQueue.RemoveAgent(userId);
+
             }
             else
             {
                 //remove user from call queue when disconnected
+                agentQueue.FreeAgentFromCall(agentQueue.GetAgentForUser(Convert.ToInt32(userId)));
                 _callQueue.TryRemoveByUserId(userId);
             }
             return base.OnDisconnectedAsync(exception);
@@ -66,7 +70,7 @@ namespace ExcelReader.Realtime
         {
             var userRole = Context?.User?.Claims
                 .FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
-            return userRole == "admin"|| userRole == "super_admin";
+            return userRole == "admin" || userRole == "super_admin";
         }
     }
 }

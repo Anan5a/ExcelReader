@@ -1,10 +1,10 @@
-﻿using DocumentFormat.OpenXml.InkML;
-using ExcelReader.Queues;
+﻿using ExcelReader.Queues;
 using ExcelReader.Realtime;
 using IRepository;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.Extensions.Logging;
 using Models;
 using Models.RealtimeMessage;
 using Services;
@@ -23,7 +23,7 @@ namespace ExcelReader.Controllers
         private readonly IUserRepository _userRepository;
         private readonly IFileMetadataRepository _fileMetadataRepository;
         private readonly IConfiguration _configuration;
-        private readonly ICallQueue<CallQueueModel> _callQueue;
+        private readonly ICallQueue<QueueModel> _callQueue;
         private readonly AgentQueue _agentQueue;
 
         private IHubContext<SimpleHub> _hubContext;
@@ -33,7 +33,7 @@ namespace ExcelReader.Controllers
            IFileMetadataRepository fileMetadataRepository,
            IConfiguration configuration,
            IHubContext<SimpleHub> hubContext,
-           ICallQueue<CallQueueModel> callQueue,
+           ICallQueue<QueueModel> callQueue,
            AgentQueue agentQueue)
         {
             _webHostEnvironment = webHostEnvironment;
@@ -78,19 +78,29 @@ namespace ExcelReader.Controllers
             {
                 return BadRequest(CustomResponseMessage.ErrorCustom("call error", "Agent/Admins cannot enter customer queue."));
             }
-            //add user call to queue
-            _callQueue.Enqueue(new CallQueueModel
+
+
+
+            await _hubContext.Clients.User(rtcConnRequest.TargetUserId.ToString()).SendAsync("CallingChannel", new CallingChannelMessage
             {
-                CallId = rtcConnRequest.Data,
-                CallTime = DateTime.Now,
+                CallData = rtcConnRequest.Data,
+                Metadata = new RTCConnModel
+                {
+                    Data = rtcConnRequest.Data,
+                    TargetUserId = Convert.ToInt32(userId),
+                    TargetUserName = userName,
+                }
+            });
+            //add user call to queue
+            _callQueue.Enqueue(new QueueModel
+            {
+                EntryTime = DateTime.Now,
                 UserId = userId,
                 Username = userName,
             });
             //further processing is done in background queue processor
 
             return Ok(CustomResponseMessage.OkCustom("Call Offer sent", true));
-
-
         }
 
         [HttpPost]
@@ -220,7 +230,7 @@ namespace ExcelReader.Controllers
             var userName = User.FindFirst(ClaimTypes.Name)?.Value;
 
             var target = rtcConnRequest.TargetUserId.ToString();
-            if (rtcConnRequest.TargetUserId == null ||rtcConnRequest.TargetUserId==0)
+            if (rtcConnRequest.TargetUserId == null || rtcConnRequest.TargetUserId == 0)
             {
                 //pull from queue
                 target = _agentQueue.GetAgentForUser(Convert.ToInt32(userId));

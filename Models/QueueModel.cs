@@ -6,12 +6,11 @@ using System.Threading.Tasks;
 
 namespace Models
 {
-    public class CallQueueModel
+    public class QueueModel
     {
         public string Username { get; set; }
         public string UserId { get; set; }
-        public string CallId { get; set; }
-        public DateTime CallTime { get; set; }
+        public DateTime EntryTime { get; set; }
 
         public override string ToString()
         {

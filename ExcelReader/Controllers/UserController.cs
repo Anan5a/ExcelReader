@@ -1,4 +1,5 @@
 ﻿using BLL;
+using ExcelReader.Queues;
 using ExcelReader.Realtime;
 using IRepository;
 using Microsoft.AspNetCore.Authorization;
@@ -24,19 +25,23 @@ namespace ExcelReader.Controllers
         private IUserRepository _userRepository;
         private readonly IFileMetadataRepository _fileMetadataRepository;
         private IHubContext<SimpleHub> _hubContext;
+        private readonly ICallQueue<QueueModel> _customerQueue;
 
         public UserController(
             IWebHostEnvironment webHostEnvironment,
             IUserRepository userRepository,
             IConfiguration configuration,
             IFileMetadataRepository fileMetadataRepository,
-            IHubContext<SimpleHub> hubContext)
+            ICallQueue<QueueModel> callQueue,
+            IHubContext<SimpleHub> hubContext
+            )
         {
             _webHostEnvironment = webHostEnvironment;
             _userRepository = userRepository;
             _configuration = configuration;
             _fileMetadataRepository = fileMetadataRepository;
             _hubContext = hubContext;
+            _customerQueue = callQueue;
         }
 
 
@@ -248,5 +253,41 @@ namespace ExcelReader.Controllers
         }
 
 
+
+        //one-way to enter the queue
+        [HttpPost]
+        [Route("enter-chat-queue")]
+        [Authorize(Roles = "user")]
+
+        public async Task<ActionResult<ResponseModel<bool>>> EnterChatQueue()
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest();
+            }
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var userName = User.FindFirst(ClaimTypes.Name)?.Value;
+            //we don't want to enqueue admins to call
+            if (isUserAdmin())
+            {
+                return BadRequest(CustomResponseMessage.ErrorCustom("action error", "Agent/Admins cannot enter customer queue."));
+            }
+            //add user call to queue
+            _customerQueue.Enqueue(new QueueModel
+            {
+                EntryTime = DateTime.Now,
+                UserId = userId,
+                Username = userName,
+            });
+            //further processing is done in background queue processor
+
+            return Ok(CustomResponseMessage.OkCustom("Agent request", true));
+        }
+        private bool isUserAdmin()
+        {
+            var userRole = User?.Claims
+                .FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
+            return userRole == "admin" || userRole == "super_admin";
+        }
     }
 }

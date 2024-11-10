@@ -21,7 +21,7 @@ builder.WebHost.ConfigureKestrel(serverOptions =>
 builder.Services.AddSignalR();
 builder.Services.AddControllers().AddJsonOptions(options =>
 {
-    options.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull|JsonIgnoreCondition.WhenWritingDefault;
+    options.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull | JsonIgnoreCondition.WhenWritingDefault;
 });
 
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
@@ -41,7 +41,7 @@ builder.Services.AddSingleton<IMyDbConnection>(provider =>
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IFileMetadataRepository, FileMetadataRepository>();
 builder.Services.AddScoped<IRoleRepository, RoleRepository>();
-builder.Services.AddSingleton<ICallQueue<CallQueueModel>,CallQueue<CallQueueModel>>();
+builder.Services.AddSingleton<ICallQueue<QueueModel>, CallQueue<QueueModel>>();
 builder.Services.AddSingleton<AgentQueue>();
 
 builder.Services.AddCors(options =>

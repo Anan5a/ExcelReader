@@ -5,8 +5,8 @@ namespace ExcelReader.Queues
 {
     public class AgentQueue
     {
-        //key is userId of agent and value is in-call customer id
-        private static readonly ConcurrentDictionary<string, int> agentList = new();
+        //key is userId of agent and value is in-call customer id,agent name
+        private static readonly ConcurrentDictionary<string, (int, string)> agentList = new();
 
         public AgentQueue()
         {
@@ -14,26 +14,26 @@ namespace ExcelReader.Queues
         }
 
         //get the userId of an agent who is not in call
-        public string GetOneAvailableAgent()
+        public (string, string) GetOneAvailableAgent()
         {
-            return agentList.Where(item => item.Value == 0).FirstOrDefault().Key;
+            return (agentList.Where(item => item.Value.Item1 == 0).FirstOrDefault().Key, agentList.Where(item => item.Value.Item1 == 0).FirstOrDefault().Value.Item2);
         }
         public IEnumerable<string> GetAllAvailableAgent()
         {
-            return agentList.Where(item => item.Value == 0).Select(it => it.Key);
+            return agentList.Where(item => item.Value.Item1 == 0).Select(it => it.Key);
         }
         public IEnumerable<string> GetAllBusyAgent()
         {
-            return agentList.Where(item => item.Value != 0).Select(it => it.Key);
+            return agentList.Where(item => item.Value.Item1 != 0).Select(it => it.Key);
         }
 
-        public bool AddNewAgent(string agentId, int state = 0)
+        public bool AddNewAgent(string agentId, string agentName, int state = 0)
         {
-            return agentList.TryAdd(agentId, state);
+            return agentList.TryAdd(agentId, (state, agentName));
         }
         public bool RemoveAgent(string agentId)
         {
-            return agentList.Remove(agentId, out int v);
+            return agentList.Remove(agentId, out var v);
         }
         public bool FreeAgentFromCall(string agentId)
         {
@@ -41,7 +41,7 @@ namespace ExcelReader.Queues
 
             try
             {
-                agentList[agentId] = 0;
+                agentList[agentId] = (0, agentList[agentId].Item2);
                 return true;
             }
             catch (Exception e)
@@ -49,7 +49,7 @@ namespace ExcelReader.Queues
                 return false;
             }
         }
-        public bool AssignCallToAgent(int CustomerId, out string agentId)
+        public bool AssignCallToAgent(int CustomerId, out (string, string) agentId)
         {
             agentId = GetOneAvailableAgent();
 
@@ -57,24 +57,24 @@ namespace ExcelReader.Queues
             {
                 return false;
             }
-            var addValue = agentList.AddOrUpdate(agentId, CustomerId, (k, old) =>
+            var addValue = agentList.AddOrUpdate(agentId.Item1, (CustomerId, ""), (k, old) =>
             {
-                if (old != 0)
+                if (old.Item1 != 0)
                 {
                     return old;
                 }
-                return CustomerId;
+                return (CustomerId, old.Item2);
             });
-            return addValue == CustomerId;
+            return addValue.Item1 == CustomerId;
         }
 
         public string GetAgentForUser(int userId)
         {
-            return agentList.Where(item => item.Value.Equals(userId)).Select(it => it.Key).FirstOrDefault();
+            return agentList.Where(item => item.Value.Item1.Equals(userId)).Select(it => it.Key).FirstOrDefault();
         }
         public int GetUserForAgent(string agentId)
         {
-            return agentList.Where(item => item.Key.Equals(agentId)).Select(it => it.Value).FirstOrDefault();
+            return agentList.Where(item => item.Key.Equals(agentId)).Select(it => it.Value.Item1).FirstOrDefault();
         }
     }
 }
