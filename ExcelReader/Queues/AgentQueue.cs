@@ -29,7 +29,11 @@ namespace ExcelReader.Queues
 
         public bool AddNewAgent(string agentId, string agentName, int state = 0)
         {
-            return agentList.TryAdd(agentId, (state, agentName));
+            var addValue = agentList.AddOrUpdate(agentId, (state, agentName), (k, old) =>
+            {
+                return (state, agentName);
+            });
+            return true;
         }
         public bool RemoveAgent(string agentId)
         {
@@ -37,7 +41,7 @@ namespace ExcelReader.Queues
         }
         public bool FreeAgentFromCall(string agentId)
         {
-            ErrorConsole.Log($"I: Release agent={agentId} from call");
+            //ErrorConsole.Log($"I: Release agent={agentId} from call");
 
             try
             {

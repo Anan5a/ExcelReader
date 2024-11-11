@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.SignalR;
 using Models;
 using System.Collections.Concurrent;
 using System.Security.Claims;
+using Utility;
 
 namespace ExcelReader.Realtime
 {
@@ -70,7 +71,7 @@ namespace ExcelReader.Realtime
         {
             var userRole = Context?.User?.Claims
                 .FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
-            return userRole == "admin" || userRole == "super_admin";
+            return userRole == UserRoles.Admin || userRole == UserRoles.SuperAdmin;
         }
     }
 }

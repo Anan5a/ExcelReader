@@ -35,8 +35,8 @@ namespace ExcelReader.BackgroundWorkers
             {
                 //var queueItem = await _callQueue.PeekAsync();
                 var availableAgents = agentQueue.GetAllAvailableAgent();
-                ErrorConsole.Log($"  Agents:: n={availableAgents.Count()}  : [" + string.Join(",", availableAgents.ToList()) + "]");
-
+                //ErrorConsole.Log($"  Agents:: n={availableAgents.Count()}  : [" + string.Join(",", availableAgents.ToList()) + "]");
+                //ErrorConsole.Log($"  Queue:: qn={_customerQueue.Count}");
                 if (availableAgents.Count() > 0 && _customerQueue.Count > 0)
                 {
 
@@ -47,7 +47,7 @@ namespace ExcelReader.BackgroundWorkers
                     {
                         //assignment successful
                         //start call establishment process, somehow
-                        ErrorConsole.Log($"  Assign call:: qSize={_customerQueue.Count} :: from={dequeueItem.UserId} -> to={agentId}\n\t{dequeueItem.ToString()}");
+                        //ErrorConsole.Log($"  Assign call:: qSize={_customerQueue.Count} :: from={dequeueItem.UserId} -> to={agentId}\n\t{dequeueItem.ToString()}");
                         RTC_SendSignalToAgent(dequeueItem, agentId.Item1);
                         RTC_SendSignalToUser(new ChatUserLimitedDTO
                         {
@@ -57,7 +57,7 @@ namespace ExcelReader.BackgroundWorkers
                     }
                     else
                     {
-                        ErrorConsole.Log($"  Assign call:: qSize={_customerQueue.Count} :: FAIL");
+                        //ErrorConsole.Log($"  Assign call:: qSize={_customerQueue.Count} :: FAIL");
 
                     }
 

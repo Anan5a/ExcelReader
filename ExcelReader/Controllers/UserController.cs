@@ -26,6 +26,7 @@ namespace ExcelReader.Controllers
         private readonly IFileMetadataRepository _fileMetadataRepository;
         private IHubContext<SimpleHub> _hubContext;
         private readonly ICallQueue<QueueModel> _customerQueue;
+        private readonly AgentQueue _agentQueue;
 
         public UserController(
             IWebHostEnvironment webHostEnvironment,
@@ -33,7 +34,8 @@ namespace ExcelReader.Controllers
             IConfiguration configuration,
             IFileMetadataRepository fileMetadataRepository,
             ICallQueue<QueueModel> callQueue,
-            IHubContext<SimpleHub> hubContext
+            IHubContext<SimpleHub> hubContext,
+            AgentQueue agentQueue
             )
         {
             _webHostEnvironment = webHostEnvironment;
@@ -42,6 +44,7 @@ namespace ExcelReader.Controllers
             _fileMetadataRepository = fileMetadataRepository;
             _hubContext = hubContext;
             _customerQueue = callQueue;
+            _agentQueue = agentQueue;
         }
 
 
@@ -283,6 +286,39 @@ namespace ExcelReader.Controllers
 
             return Ok(CustomResponseMessage.OkCustom("Agent request", true));
         }
+
+
+        [HttpPost]
+        [Route("close-chat")]
+        [Authorize(Roles = "user, admin, super_admin")]
+
+        public async Task<ActionResult<ResponseModel<bool>>> ExitChatQueue()
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest();
+            }
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var userName = User.FindFirst(ClaimTypes.Name)?.Value;
+            //remove user and free agent 
+            if (isUserAdmin())
+            {
+                _customerQueue.TryRemoveByUserId(_agentQueue.GetUserForAgent(userId).ToString());
+                _agentQueue.FreeAgentFromCall(userId);
+
+            }
+            else
+            {
+                _customerQueue.TryRemoveByUserId(userId);
+                //freeing agent on customer action will cause inconsistent and confusing behaviour in the ui
+                //_agentQueue.FreeAgentFromCall(_agentQueue.GetAgentForUser(Convert.ToInt32(userId)).ToString());
+
+            }
+
+
+            return Ok(CustomResponseMessage.OkCustom("Chat exit ok", true));
+        }
+
         private bool isUserAdmin()
         {
             var userRole = User?.Claims

@@ -1,4 +1,5 @@
 ﻿using BLL;
+using DocumentFormat.OpenXml.Presentation;
 using IRepository;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -77,5 +78,27 @@ namespace ExcelReader.Controllers
                     return Ok(CustomResponseMessage.OkCustom<string?>("New user was added.", null));
             }
         }
+
+        [HttpGet]
+        [Authorize(Roles = "admin, super_admin")]
+        [Route("user-info/{userId}")]
+        public async Task<ActionResult<ResponseModel<User?>>> UserInfo(Int32 userId)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(CustomResponseMessage.ErrorCustom("Bad Request", "Invalid request parameters?"));
+            }
+
+            Dictionary<string, dynamic> condition = new Dictionary<string, dynamic>();
+
+            condition["id"] = userId;
+            User? existingUser = _userRepository.Get(condition, resolveRelation: true);
+
+
+            return Ok(CustomResponseMessage.OkCustom<User?>("Query ok.", existingUser));
+
+        }
+
+
     }
 }

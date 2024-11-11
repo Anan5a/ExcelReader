@@ -4,11 +4,11 @@ using IRepository;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
-using Microsoft.Extensions.Logging;
 using Models;
 using Models.RealtimeMessage;
 using Services;
 using System.Security.Claims;
+using Utility;
 
 namespace ExcelReader.Controllers
 {
@@ -131,12 +131,8 @@ namespace ExcelReader.Controllers
                 el.ElementAt(el.Length - 1).Contains("end")
             )
             {
-                _callQueue.TryRemoveByUserId(userId);
-                _agentQueue.FreeAgentFromCall(_agentQueue.GetAgentForUser(int.Parse(userId)));
+                //do nothing, as chat should continue even after call is ended
             }
-            //
-
-
 
 
             await _hubContext.Clients.User(target.ToString()).SendAsync("CallingChannel", new CallingChannelMessage
@@ -170,10 +166,6 @@ namespace ExcelReader.Controllers
             {
                 target = _agentQueue.GetAgentForUser(Convert.ToInt32(userId));
             }
-
-
-
-
 
 
             rtcConnRequest.TargetUserId = Convert.ToInt32(userId);
@@ -256,7 +248,7 @@ namespace ExcelReader.Controllers
         {
             var userRole = User?.Claims
                 .FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
-            return userRole == "admin" || userRole == "super_admin";
+            return userRole == UserRoles.Admin || userRole == UserRoles.SuperAdmin;
         }
     }
 }

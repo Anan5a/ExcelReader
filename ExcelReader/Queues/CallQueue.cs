@@ -28,14 +28,14 @@ namespace ExcelReader.Queues
             if (item == null) throw new ArgumentNullException(nameof(item));
             if (item is QueueModel model && inQueueUsers.ContainsKey(model.UserId))
             {
-                ErrorConsole.Log("Already in queue... ::" + item.ToString());
+                //ErrorConsole.Log("Already in queue... ::" + item.ToString());
 
                 //already in queue, ignore
                 return false;
             }
             else
             {
-                ErrorConsole.Log("Id did not match... ::" + item.ToString());
+                //ErrorConsole.Log("Id did not match... ::" + item.ToString());
             }
             int key = Interlocked.Increment(ref _counter);
             _queue[key] = item;
@@ -58,7 +58,7 @@ namespace ExcelReader.Queues
 
         public bool TryRemoveByUserId(string item)
         {
-            ErrorConsole.Log($"I: Remove user={item} from queue");
+            //ErrorConsole.Log($"I: Remove user={item} from queue");
             var kvp = _queue.FirstOrDefault(pair => (pair.Value as QueueModel).UserId.Equals(item));
             return kvp.Key != 0 && _queue.TryRemove(kvp.Key, out _);
         }
