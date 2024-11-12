@@ -1,5 +1,4 @@
-﻿using DocumentFormat.OpenXml.Spreadsheet;
-using ExcelReader.Queues;
+﻿using ExcelReader.Services.Queues;
 using ExcelReader.Realtime;
 using Microsoft.AspNetCore.SignalR;
 using Models;
@@ -48,11 +47,11 @@ namespace ExcelReader.BackgroundWorkers
                         //assignment successful
                         //start call establishment process, somehow
                         //ErrorConsole.Log($"  Assign call:: qSize={_customerQueue.Count} :: from={dequeueItem.UserId} -> to={agentId}\n\t{dequeueItem.ToString()}");
-                        RTC_SendSignalToAgent(dequeueItem, agentId.Item1);
+                        RTC_SendSignalToAgent(dequeueItem, agentId?.Item1);
                         RTC_SendSignalToUser(new ChatUserLimitedDTO
                         {
-                            Id = Convert.ToInt64(agentId.Item1),
-                            Name = agentId.Item2
+                            Id = Convert.ToInt64(agentId?.Item1),
+                            Name = agentId?.Item2
                         }, dequeueItem.UserId);
                     }
                     else
@@ -69,8 +68,8 @@ namespace ExcelReader.BackgroundWorkers
                     await Task.Delay(1000);
                 }
                 //send notification to agent
-                ErrorConsole.Log("End call processing...");
             }
+            ErrorConsole.Log("End call processing...");
         }
 
 

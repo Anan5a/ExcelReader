@@ -1,7 +1,6 @@
-﻿using ExcelReader.Queues;
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
-using Models;
+using Services;
 using System.Collections.Concurrent;
 using System.Security.Claims;
 using Utility;
@@ -12,16 +11,11 @@ namespace ExcelReader.Realtime
     public class SimpleHub : Hub
     {
         private static readonly ConcurrentDictionary<string, string> _userConnections = new();
-        private readonly AgentQueue agentQueue;
-        private readonly ICallQueue<QueueModel> _callQueue;
+        private readonly ChatQueueService _chatQueueService;
 
-        public SimpleHub(
-            AgentQueue agentQueue,
-            ICallQueue<QueueModel> callQueue
-            )
+        public SimpleHub(ChatQueueService chatQueueService)
         {
-            this.agentQueue = agentQueue;
-            _callQueue = callQueue;
+            _chatQueueService = chatQueueService;
         }
         public override Task OnConnectedAsync()
         {
@@ -32,7 +26,7 @@ namespace ExcelReader.Realtime
             if (isUserAdmin())
             {
                 //add to agent list
-                agentQueue.AddNewAgent(userId, userName);
+                _chatQueueService.AddNewAgent(userId, userName);
             }
 
             return base.OnConnectedAsync();
@@ -44,15 +38,15 @@ namespace ExcelReader.Realtime
             _userConnections.TryRemove(userId, out _);
             if (isUserAdmin())
             {
-                _callQueue.TryRemoveByUserId(agentQueue.GetUserForAgent(userId.ToString()).ToString());
-                agentQueue.RemoveAgent(userId);
+                _chatQueueService.TryRemoveByUserId(_chatQueueService.GetUserForAgent(userId.ToString()).ToString());
+                _chatQueueService.RemoveAgent(userId);
 
             }
             else
             {
                 //remove user from call queue when disconnected
-                agentQueue.FreeAgentFromCall(agentQueue.GetAgentForUser(Convert.ToInt32(userId)));
-                _callQueue.TryRemoveByUserId(userId);
+                _chatQueueService.FreeAgentFromCall(_chatQueueService.GetAgentForUser(Convert.ToInt32(userId), out _));
+                _chatQueueService.TryRemoveByUserId(userId);
             }
             return base.OnDisconnectedAsync(exception);
         }

@@ -1,4 +1,4 @@
-﻿using ExcelReader.Queues;
+﻿using ExcelReader.Services.Queues;
 using ExcelReader.Realtime;
 using IRepository;
 using Microsoft.AspNetCore.Authorization;
@@ -23,8 +23,7 @@ namespace ExcelReader.Controllers
         private readonly IUserRepository _userRepository;
         private readonly IFileMetadataRepository _fileMetadataRepository;
         private readonly IConfiguration _configuration;
-        private readonly ICallQueue<QueueModel> _callQueue;
-        private readonly AgentQueue _agentQueue;
+        private readonly ChatQueueService _chatQueueService;
 
         private IHubContext<SimpleHub> _hubContext;
         public CallingController(
@@ -33,16 +32,14 @@ namespace ExcelReader.Controllers
            IFileMetadataRepository fileMetadataRepository,
            IConfiguration configuration,
            IHubContext<SimpleHub> hubContext,
-           ICallQueue<QueueModel> callQueue,
-           AgentQueue agentQueue)
+           ChatQueueService chatQueueService)
         {
             _webHostEnvironment = webHostEnvironment;
             _userRepository = userRepository;
             _fileMetadataRepository = fileMetadataRepository;
             _configuration = configuration;
             _hubContext = hubContext;
-            _callQueue = callQueue;
-            _agentQueue = agentQueue;
+            _chatQueueService = chatQueueService;
         }
 
 
@@ -92,7 +89,8 @@ namespace ExcelReader.Controllers
                 }
             });
             //add user call to queue
-            _callQueue.Enqueue(new QueueModel
+
+            _chatQueueService.Enqueue(new QueueModel
             {
                 EntryTime = DateTime.Now,
                 UserId = userId,
@@ -164,7 +162,7 @@ namespace ExcelReader.Controllers
             }
             else
             {
-                target = _agentQueue.GetAgentForUser(Convert.ToInt32(userId));
+                target = _chatQueueService.GetAgentForUser(Convert.ToInt32(userId), out _);
             }
 
 
@@ -225,11 +223,8 @@ namespace ExcelReader.Controllers
             if (rtcConnRequest.TargetUserId == null || rtcConnRequest.TargetUserId == 0)
             {
                 //pull from queue
-                target = _agentQueue.GetAgentForUser(Convert.ToInt32(userId));
+                target = _chatQueueService.GetAgentForUser(Convert.ToInt32(userId), out _);
             }
-
-
-
 
             rtcConnRequest.TargetUserId = Convert.ToInt32(userId);
             rtcConnRequest.TargetUserName = userName;

@@ -1,5 +1,5 @@
 ﻿using BLL;
-using ExcelReader.Queues;
+using ExcelReader.Services.Queues;
 using ExcelReader.Realtime;
 using IRepository;
 using Microsoft.AspNetCore.Authorization;
@@ -25,8 +25,7 @@ namespace ExcelReader.Controllers
         private IUserRepository _userRepository;
         private readonly IFileMetadataRepository _fileMetadataRepository;
         private IHubContext<SimpleHub> _hubContext;
-        private readonly ICallQueue<QueueModel> _customerQueue;
-        private readonly AgentQueue _agentQueue;
+        private readonly ChatQueueService _chatQueueService;
 
         public UserController(
             IWebHostEnvironment webHostEnvironment,
@@ -35,7 +34,7 @@ namespace ExcelReader.Controllers
             IFileMetadataRepository fileMetadataRepository,
             ICallQueue<QueueModel> callQueue,
             IHubContext<SimpleHub> hubContext,
-            AgentQueue agentQueue
+            ChatQueueService chatQueueService
             )
         {
             _webHostEnvironment = webHostEnvironment;
@@ -43,8 +42,7 @@ namespace ExcelReader.Controllers
             _configuration = configuration;
             _fileMetadataRepository = fileMetadataRepository;
             _hubContext = hubContext;
-            _customerQueue = callQueue;
-            _agentQueue = agentQueue;
+            _chatQueueService = chatQueueService;
         }
 
 
@@ -209,9 +207,11 @@ namespace ExcelReader.Controllers
         }
 
         //// Messaging system ////
+
+
         [HttpGet]
         [Route("online-users")]
-        [Authorize(Roles = "user, admin, super_admin")]
+        [Authorize(Roles = "admin, super_admin")]
         public async Task<ActionResult<ResponseModel<IEnumerable<ChatUserLimitedDTO>>>> GetOnlineUsers()
         {
             long.TryParse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var fromUserId);
@@ -220,16 +220,25 @@ namespace ExcelReader.Controllers
             var onlineUsers = SimpleHub.GetConnectedUserList().Where(id => id != fromUserId).ToList();
             var userDetails = UserBLL.UsersById(_userRepository, onlineUsers);
             //filter list based on user or admin
-
+            //only show non-admin users
             var returnList = from user in userDetails
                              where
                              (
-                                fromUserRole == UserRoles.Admin ||
-                                fromUserRole == UserRoles.SuperAdmin ||
-                                user.Role.RoleName == UserRoles.Admin ||
-                                user.Role.RoleName == UserRoles.SuperAdmin
+                                //(fromUserRole == UserRoles.Admin &&
+                                //fromUserRole == UserRoles.SuperAdmin) ||
+                                user.Role.RoleName != UserRoles.Admin &&
+                                user.Role.RoleName != UserRoles.SuperAdmin
                              )
-                             select new ChatUserLimitedDTO { Id = user.Id, Name = user.Name };
+                             select new ChatUserLimitedDTO
+                             {
+                                 Id = user.Id,
+                                 Name = user.Name,
+                                 AgentInfo = new()
+                                 {
+                                     Id = int.Parse(_chatQueueService.GetAgentForUser(Convert.ToInt32(user.Id), out var agentName)),
+                                     Name = agentName,
+                                 }
+                             };
 
             return Ok(CustomResponseMessage.OkCustom<IEnumerable<ChatUserLimitedDTO>>("Query ok.", returnList));
         }
@@ -276,7 +285,7 @@ namespace ExcelReader.Controllers
                 return BadRequest(CustomResponseMessage.ErrorCustom("action error", "Agent/Admins cannot enter customer queue."));
             }
             //add user call to queue
-            _customerQueue.Enqueue(new QueueModel
+            _chatQueueService.Enqueue(new QueueModel
             {
                 EntryTime = DateTime.Now,
                 UserId = userId,
@@ -303,13 +312,13 @@ namespace ExcelReader.Controllers
             //remove user and free agent 
             if (isUserAdmin())
             {
-                _customerQueue.TryRemoveByUserId(_agentQueue.GetUserForAgent(userId).ToString());
-                _agentQueue.FreeAgentFromCall(userId);
+                _chatQueueService.TryRemoveByUserId(_chatQueueService.GetUserForAgent(userId).ToString());
+                _chatQueueService.FreeAgentFromCall(userId);
 
             }
             else
             {
-                _customerQueue.TryRemoveByUserId(userId);
+                _chatQueueService.TryRemoveByUserId(userId);
                 //freeing agent on customer action will cause inconsistent and confusing behaviour in the ui
                 //_agentQueue.FreeAgentFromCall(_agentQueue.GetAgentForUser(Convert.ToInt32(userId)).ToString());
 

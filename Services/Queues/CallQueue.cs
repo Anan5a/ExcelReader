@@ -2,7 +2,7 @@
 using Services;
 using System.Collections.Concurrent;
 
-namespace ExcelReader.Queues
+namespace ExcelReader.Services.Queues
 {
     //this is a application wide queue for call management
 

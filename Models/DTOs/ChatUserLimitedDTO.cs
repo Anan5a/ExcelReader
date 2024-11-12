@@ -12,5 +12,7 @@ namespace Models.DTOs
         [Required]
         [MaxLength(255)]
         public string Name { get; set; }
+        [BindNever]
+        public ChatUserLimitedDTO? AgentInfo { get; set; }
     }
 }

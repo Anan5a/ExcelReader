@@ -1,6 +1,6 @@
 using DataAccess;
 using ExcelReader.BackgroundWorkers;
-using ExcelReader.Queues;
+using ExcelReader.Services.Queues;
 using ExcelReader.Realtime;
 using IRepository;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -9,6 +9,7 @@ using Models;
 using System.Text;
 using System.Text.Json.Serialization;
 using Utility;
+using Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -43,6 +44,7 @@ builder.Services.AddScoped<IFileMetadataRepository, FileMetadataRepository>();
 builder.Services.AddScoped<IRoleRepository, RoleRepository>();
 builder.Services.AddSingleton<ICallQueue<QueueModel>, CallQueue<QueueModel>>();
 builder.Services.AddSingleton<AgentQueue>();
+builder.Services.AddSingleton<ChatQueueService>();
 
 builder.Services.AddCors(options =>
 {
