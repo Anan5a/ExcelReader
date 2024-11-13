@@ -24,25 +24,20 @@ namespace ExcelReader.Controllers
         private IConfiguration _configuration;
         private IUserRepository _userRepository;
         private readonly IFileMetadataRepository _fileMetadataRepository;
-        private IHubContext<SimpleHub> _hubContext;
-        private readonly ChatQueueService _chatQueueService;
 
         public UserController(
             IWebHostEnvironment webHostEnvironment,
             IUserRepository userRepository,
             IConfiguration configuration,
-            IFileMetadataRepository fileMetadataRepository,
-            ICallQueue<QueueModel> callQueue,
-            IHubContext<SimpleHub> hubContext,
-            ChatQueueService chatQueueService
+            IFileMetadataRepository fileMetadataRepository
+
+
             )
         {
             _webHostEnvironment = webHostEnvironment;
             _userRepository = userRepository;
             _configuration = configuration;
             _fileMetadataRepository = fileMetadataRepository;
-            _hubContext = hubContext;
-            _chatQueueService = chatQueueService;
         }
 
 
@@ -206,133 +201,5 @@ namespace ExcelReader.Controllers
             return Redirect("/");
         }
 
-        //// Messaging system ////
-
-
-        [HttpGet]
-        [Route("online-users")]
-        [Authorize(Roles = "admin, super_admin")]
-        public async Task<ActionResult<ResponseModel<IEnumerable<ChatUserLimitedDTO>>>> GetOnlineUsers()
-        {
-            long.TryParse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var fromUserId);
-            var fromUserRole = User.FindFirst(ClaimTypes.Role)?.Value;
-            //list of connected/online users
-            var onlineUsers = SimpleHub.GetConnectedUserList().Where(id => id != fromUserId).ToList();
-            var userDetails = UserBLL.UsersById(_userRepository, onlineUsers);
-            //filter list based on user or admin
-            //only show non-admin users
-            var returnList = from user in userDetails
-                             where
-                             (
-                                //(fromUserRole == UserRoles.Admin &&
-                                //fromUserRole == UserRoles.SuperAdmin) ||
-                                user.Role.RoleName != UserRoles.Admin &&
-                                user.Role.RoleName != UserRoles.SuperAdmin
-                             )
-                             select new ChatUserLimitedDTO
-                             {
-                                 Id = user.Id,
-                                 Name = user.Name,
-                                 AgentInfo = new()
-                                 {
-                                     Id = int.Parse(_chatQueueService.GetAgentForUser(Convert.ToInt32(user.Id), out var agentName)),
-                                     Name = agentName,
-                                 }
-                             };
-
-            return Ok(CustomResponseMessage.OkCustom<IEnumerable<ChatUserLimitedDTO>>("Query ok.", returnList));
-        }
-
-
-        [HttpPost]
-        [Route("send-message")]
-        [Authorize(Roles = "user, admin, super_admin")]
-        public async Task<ActionResult<ResponseModel<object?>>> SendMessage(ChatSendMessageDTO chatSendMessageDTO)
-        {
-            long.TryParse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var fromUserId);
-
-
-            //send message to user
-
-            await _hubContext.Clients.User(chatSendMessageDTO.To.ToString()).SendAsync("ChatChannel", new ChatChannelMessage
-            {
-                Content = chatSendMessageDTO.Message,
-                From = fromUserId,
-            });
-
-            return Ok(CustomResponseMessage.OkCustom<string?>("Message sent.", null));
-
-        }
-
-
-
-        //one-way to enter the queue
-        [HttpPost]
-        [Route("enter-chat-queue")]
-        [Authorize(Roles = "user")]
-
-        public async Task<ActionResult<ResponseModel<bool>>> EnterChatQueue()
-        {
-            if (!ModelState.IsValid)
-            {
-                return BadRequest();
-            }
-            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            var userName = User.FindFirst(ClaimTypes.Name)?.Value;
-            //we don't want to enqueue admins to call
-            if (isUserAdmin())
-            {
-                return BadRequest(CustomResponseMessage.ErrorCustom("action error", "Agent/Admins cannot enter customer queue."));
-            }
-            //add user call to queue
-            _chatQueueService.Enqueue(new QueueModel
-            {
-                EntryTime = DateTime.Now,
-                UserId = userId,
-                Username = userName,
-            });
-            //further processing is done in background queue processor
-
-            return Ok(CustomResponseMessage.OkCustom("Agent request", true));
-        }
-
-
-        [HttpPost]
-        [Route("close-chat")]
-        [Authorize(Roles = "user, admin, super_admin")]
-
-        public async Task<ActionResult<ResponseModel<bool>>> ExitChatQueue()
-        {
-            if (!ModelState.IsValid)
-            {
-                return BadRequest();
-            }
-            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            var userName = User.FindFirst(ClaimTypes.Name)?.Value;
-            //remove user and free agent 
-            if (isUserAdmin())
-            {
-                _chatQueueService.TryRemoveByUserId(_chatQueueService.GetUserForAgent(userId).ToString());
-                _chatQueueService.FreeAgentFromCall(userId);
-
-            }
-            else
-            {
-                _chatQueueService.TryRemoveByUserId(userId);
-                //freeing agent on customer action will cause inconsistent and confusing behaviour in the ui
-                //_agentQueue.FreeAgentFromCall(_agentQueue.GetAgentForUser(Convert.ToInt32(userId)).ToString());
-
-            }
-
-
-            return Ok(CustomResponseMessage.OkCustom("Chat exit ok", true));
-        }
-
-        private bool isUserAdmin()
-        {
-            var userRole = User?.Claims
-                .FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
-            return userRole == "admin" || userRole == "super_admin";
-        }
     }
 }

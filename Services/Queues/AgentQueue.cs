@@ -76,6 +76,22 @@ namespace ExcelReader.Services.Queues
             });
             return addValue.Item1 == CustomerId;
         }
+        public bool AssignCallToAgentWithId(int CustomerId, string agentId)
+        {
+            if (CustomerId == 0)
+            {
+                return false;
+            }
+            var addValue = agentList.AddOrUpdate(agentId, (CustomerId, ""), (k, old) =>
+            {
+                if (old.Item1 != 0)
+                {
+                    return old;
+                }
+                return (CustomerId, old.Item2);
+            });
+            return addValue.Item1 == CustomerId;
+        }
 
         public string GetAgentForUser(int userId, out string? agentName)
         {

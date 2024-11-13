@@ -1,5 +1,7 @@
 ﻿using ExcelReader.Services.Queues;
 using Models;
+using Models.DTOs;
+using Models.RealtimeMessage;
 
 namespace Services
 {
@@ -10,16 +12,29 @@ namespace Services
     {
         private readonly ICallQueue<QueueModel> _callQueue;
         private readonly AgentQueue _agentQueue;
+
         public ChatQueueService(ICallQueue<QueueModel> callQueue, AgentQueue agentQueue)
         {
             _callQueue = callQueue;
             _agentQueue = agentQueue;
         }
 
+
         /// <summary>
         /// Automatically assign user to an agent
         /// </summary>
         /// <returns></returns>
+        public async Task<(bool, QueueModel?)> ProcessNextCallWithAgentAndUserAsync(int userId, string agentId)
+        {
+
+            //dequeue
+            var dequeueItem = _callQueue.DequeueByIdAsync(userId);
+
+            return (_agentQueue.AssignCallToAgentWithId(int.Parse(dequeueItem.UserId), agentId), dequeueItem);
+
+            //assign agent
+
+        }
         public async Task<QueueModel?> ProcessNextCallAsync()
         {
             var availableAgent = _agentQueue.GetOneAvailableAgent();
@@ -35,6 +50,9 @@ namespace Services
 
             return null;
         }
+
+
+
 
         public bool AddAgent(string userId, string userName)
         {
@@ -68,5 +86,13 @@ namespace Services
         {
             return _callQueue.TryRemoveByUserId(item);
         }
+        public IEnumerable<long> GetQueueUserIds()
+        {
+            return _callQueue.GetQueueUserIds();
+        }
+
+
+
+
     }
 }

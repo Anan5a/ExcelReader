@@ -1,6 +1,7 @@
 ﻿using Models;
 using Services;
 using System.Collections.Concurrent;
+using System.Linq;
 
 namespace ExcelReader.Services.Queues
 {
@@ -13,13 +14,17 @@ namespace ExcelReader.Services.Queues
         Task<T?> PeekAsync();
         int Count { get; }
         bool TryRemoveByUserId(string item);
+        T? DequeueByIdAsync(int userId);
 
-
+        IEnumerable<long> GetQueueUserIds();
     }
     public class CallQueue<T> : ICallQueue<T> where T : class
     {
         private readonly ConcurrentDictionary<int, T> _queue = new ConcurrentDictionary<int, T>();
-        private readonly ConcurrentDictionary<string, string> inQueueUsers = new();
+        //using this hacked system because there is no thread-safe list ootb, value is always null
+        private readonly ConcurrentDictionary<string, string?> inQueueUsers = new();
+        private readonly ConcurrentDictionary<string, string?> processedUsers = new();
+
         private readonly SemaphoreSlim _signal = new SemaphoreSlim(0);
         private int _counter = 0;
 
@@ -39,7 +44,7 @@ namespace ExcelReader.Services.Queues
             }
             int key = Interlocked.Increment(ref _counter);
             _queue[key] = item;
-            inQueueUsers.TryAdd((item as QueueModel).UserId, "");
+            inQueueUsers.TryAdd((item as QueueModel).UserId, null);
             _signal.Release();
             return true;
         }
@@ -53,14 +58,34 @@ namespace ExcelReader.Services.Queues
             var firstItem = _queue.OrderBy(kvp => kvp.Key).FirstOrDefault();
             _queue.TryRemove(firstItem.Key, out var item);
             inQueueUsers.Remove((item as QueueModel).UserId, out var _);
+            processedUsers.TryAdd((item as QueueModel).UserId, null);
             return item;
         }
+
+        public T? DequeueByIdAsync(int userId)
+        {
+            if (_queue.IsEmpty) return null;
+
+            var firstItem = _queue.FirstOrDefault(kvp => kvp.Key == userId);
+            _queue.TryRemove(firstItem.Key, out var item);
+            inQueueUsers.Remove((item as QueueModel).UserId, out var _);
+            processedUsers.TryAdd((item as QueueModel).UserId, null);
+            return item;
+        }
+
 
         public bool TryRemoveByUserId(string item)
         {
             //ErrorConsole.Log($"I: Remove user={item} from queue");
             var kvp = _queue.FirstOrDefault(pair => (pair.Value as QueueModel).UserId.Equals(item));
-            return kvp.Key != 0 && _queue.TryRemove(kvp.Key, out _);
+            //remove from trackers
+            var rmState = _queue.TryRemove(kvp.Key, out var _o);
+            if (rmState)
+            {
+                inQueueUsers.TryRemove(inQueueUsers.FirstOrDefault(it => it.Key == (_o as QueueModel).UserId));
+                processedUsers.TryRemove(processedUsers.FirstOrDefault(it => it.Key == (_o as QueueModel).UserId));
+            }
+            return kvp.Key != 0 && rmState;
         }
 
         public async Task<T?> PeekAsync()
@@ -73,6 +98,10 @@ namespace ExcelReader.Services.Queues
             return firstItem.Value;
         }
 
+        public IEnumerable<long> GetQueueUserIds()
+        {
+            return inQueueUsers.Select(q => long.Parse(q.Key)).Concat(processedUsers.Select(q => long.Parse(q.Key)));
+        }
 
         public int Count => _queue.Count;
     }

@@ -15,4 +15,10 @@ namespace Models.DTOs
         [BindNever]
         public ChatUserLimitedDTO? AgentInfo { get; set; }
     }
+    public class ChatUserIdOnlyDTO
+    {
+        [Required]
+        public long Id { get; set; }
+
+    }
 }
