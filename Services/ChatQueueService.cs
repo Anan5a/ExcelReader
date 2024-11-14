@@ -24,13 +24,16 @@ namespace Services
         /// Automatically assign user to an agent
         /// </summary>
         /// <returns></returns>
-        public async Task<(bool, QueueModel?)> ProcessNextCallWithAgentAndUserAsync(int userId, string agentId)
+        public async Task<(bool, QueueModel)?> ProcessNextCallWithAgentAndUserAsync(int userId, string agentId)
         {
 
             //dequeue
             var dequeueItem = _callQueue.DequeueByIdAsync(userId);
-
-            return (_agentQueue.AssignCallToAgentWithId(int.Parse(dequeueItem.UserId), agentId), dequeueItem);
+            if (dequeueItem != null)
+            {
+                return (_agentQueue.AssignCallToAgentWithId(int.Parse(dequeueItem.UserId), agentId), dequeueItem);
+            }
+            return null;
 
             //assign agent
 

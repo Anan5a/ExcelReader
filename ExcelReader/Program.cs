@@ -113,6 +113,12 @@ builder.Services.AddAuthorization(options =>
 
 builder.Services.AddHostedService<BackgroundCallQueueProcessor>();
 
+builder.Services.AddSpaStaticFiles(configuration =>
+{
+    configuration.RootPath = "wwwroot/frontend";
+});
+
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -120,7 +126,7 @@ if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
-    //prod *must* use real https certs, this bypass https in prod,docker container
+    //prod *must* use real https certs, this bypass https in prod docker container
     app.UseHttpsRedirection();
 }
 app.UseCors("AllowLocalDevOrigin");
@@ -128,6 +134,23 @@ app.UseCors("AllowLocalDevOrigin");
 app.UseStaticFiles();
 app.UseAuthentication();
 app.UseAuthorization();
+
+
+app.MapWhen(context => !context.Request.Path.StartsWithSegments("/api"), appBuilder =>
+{
+    appBuilder.UseSpa(spa =>
+    {
+        spa.Options.SourcePath = "frontend";
+        if (app.Environment.IsDevelopment())
+        {
+            spa.UseProxyToSpaDevelopmentServer("http://localhost:4200");
+        }
+        else
+        {
+            app.UseSpaStaticFiles();
+        }
+    });
+});
 
 app.MapControllers();
 

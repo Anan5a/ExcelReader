@@ -66,10 +66,13 @@ namespace ExcelReader.Services.Queues
         {
             if (_queue.IsEmpty) return null;
 
-            var firstItem = _queue.FirstOrDefault(kvp => kvp.Key == userId);
+            var firstItem = _queue.FirstOrDefault(kvp => (kvp.Value as QueueModel).UserId.Equals(userId.ToString()));
             _queue.TryRemove(firstItem.Key, out var item);
-            inQueueUsers.Remove((item as QueueModel).UserId, out var _);
-            processedUsers.TryAdd((item as QueueModel).UserId, null);
+            if (item != null)
+            {
+                inQueueUsers.Remove((item as QueueModel).UserId, out var _);
+                processedUsers.TryAdd((item as QueueModel).UserId, null);
+            }
             return item;
         }
 
@@ -80,10 +83,11 @@ namespace ExcelReader.Services.Queues
             var kvp = _queue.FirstOrDefault(pair => (pair.Value as QueueModel).UserId.Equals(item));
             //remove from trackers
             var rmState = _queue.TryRemove(kvp.Key, out var _o);
-            if (rmState)
+            if (rmState && _o != null)
             {
-                inQueueUsers.TryRemove(inQueueUsers.FirstOrDefault(it => it.Key == (_o as QueueModel).UserId));
-                processedUsers.TryRemove(processedUsers.FirstOrDefault(it => it.Key == (_o as QueueModel).UserId));
+                inQueueUsers.TryRemove(inQueueUsers.FirstOrDefault(it => it.Key == (_o as QueueModel)?.UserId));
+                processedUsers.Remove((_o as QueueModel)?.UserId!, out var _);
+
             }
             return kvp.Key != 0 && rmState;
         }

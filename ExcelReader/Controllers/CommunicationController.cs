@@ -145,17 +145,25 @@ namespace ExcelReader.Controllers
             //try to assign user to agent
             var assignmentStatus = await _chatQueueService.ProcessNextCallWithAgentAndUserAsync(Convert.ToInt32(chatUserIdOnlyDTO.Id), userId);
 
-
-            if (assignmentStatus.Item1)
+            if (assignmentStatus != null)
             {
-                RTC_SendSignalToAgent(assignmentStatus.Item2, userId.ToString());
-                RTC_SendSignalToUser(new ChatUserLimitedDTO
-                {
-                    Id = Convert.ToInt64(userId),
-                    Name = userName,
-                }, assignmentStatus.Item2.UserId);
 
-                return Ok(CustomResponseMessage.OkCustom("Accept user into chat successful", true));
+                if (assignmentStatus.Value.Item1)
+                {
+                    RTC_SendSignalToAgent(assignmentStatus.Value.Item2, userId.ToString());
+                    RTC_SendSignalToUser(new ChatUserLimitedDTO
+                    {
+                        Id = Convert.ToInt64(userId),
+                        Name = userName,
+                    }, assignmentStatus.Value.Item2.UserId);
+
+                    return Ok(CustomResponseMessage.OkCustom("Accept user into chat successful", true));
+                }
+                else
+                {
+                    return Ok(CustomResponseMessage.OkCustom("Accept user into chat failed, try refreshing", false));
+
+                }
             }
             return Ok(CustomResponseMessage.OkCustom("Accept user into chat failed", false));
         }
