@@ -206,7 +206,7 @@ namespace ExcelReader.Controllers
 
             var signature = DownloadUrlSecurityService.SignData(signatureSrc, _configuration["FileDownloadSecurity:RSAPrivateKeyB64"]);
 
-            var downloadLink = $"/download/{fileToDownload.FileNameSystem}?filename={WebUtility.UrlEncode(fileToDownload.FileName)}&expire={validTill}&signature={signature}";
+            var downloadLink = $"/api/file/download/{fileToDownload.FileNameSystem}?filename={WebUtility.UrlEncode(fileToDownload.FileName)}&expire={validTill}&signature={signature}";
 
             return Ok(CustomResponseMessage.OkCustom<string>("Link ok", downloadLink));
 
@@ -215,7 +215,7 @@ namespace ExcelReader.Controllers
 
 
         [HttpGet]
-        [Route("/download/{fileId}")]
+        [Route("download/{fileId}")]
         [AllowAnonymous]
 
         public async Task<ActionResult> DownloadFile(

@@ -135,8 +135,12 @@ app.UseStaticFiles();
 app.UseAuthentication();
 app.UseAuthorization();
 
+app.MapHub<SimpleHub>("/Realtime");
 
-app.MapWhen(context => !context.Request.Path.StartsWithSegments("/api"), appBuilder =>
+app.MapWhen(context => (
+    !context.Request.Path.StartsWithSegments("/api") &&
+    !context.Request.Path.StartsWithSegments("/Realtime")
+    ), appBuilder =>
 {
     appBuilder.UseSpa(spa =>
     {
@@ -154,6 +158,5 @@ app.MapWhen(context => !context.Request.Path.StartsWithSegments("/api"), appBuil
 
 app.MapControllers();
 
-app.MapHub<SimpleHub>("/Realtime");
 
 app.Run();
