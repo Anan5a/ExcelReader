@@ -59,7 +59,7 @@ builder.Services.AddCors(options =>
             "http://192.168.0.101:4200",
             "https://192.168.0.101:4200",
             "https://filekeeper-snowy.vercel.app"
-            ])
+        ])
         .AllowAnyMethod()
         .AllowAnyHeader()
         .AllowCredentials());

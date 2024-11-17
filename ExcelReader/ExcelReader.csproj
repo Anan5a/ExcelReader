@@ -9,25 +9,34 @@
 	</PropertyGroup>
 
 	<!-- Angular config when publishing release -->
-	<PropertyGroup>
-		<!--change this-->
+	<!-- Default Property Group (for local builds or non-Docker environments) -->
+	<PropertyGroup Condition="'$(IsDockerBuild)' != 'true'">
 		<SpaRoot>D:\Angular-Learning\Angular-Learning\Assignment\ExcelReader\</SpaRoot>
 		<AngularBuildOutput>dist\dotnet\</AngularBuildOutput>
 	</PropertyGroup>
 
-	<Target Name="PublishAngular" BeforeTargets="ComputeFilesToPublish">
-		<!-- Run Angular production build -->
+	<!-- Docker-Specific Property Group -->
+	<PropertyGroup Condition="'$(IsDockerBuild)' == 'true'">
+		<SpaRoot>WebUI/ExcelReader</SpaRoot>
+		<AngularBuildOutput>dist/dotnet/</AngularBuildOutput>
+	</PropertyGroup>
+
+
+	<!-- END Angular config when publishing release -->
+
+	<Target Name="PublishAngular" BeforeTargets="ComputeFilesToPublish" Condition="'$(IsDockerBuild)' != 'true'">
 		<Exec Command="npm install" WorkingDirectory="$(SpaRoot)" />
 		<Exec Command="npm run build:dotnet" WorkingDirectory="$(SpaRoot)" />
 
-		<!-- Copy the Angular output to wwwroot -->
+
+		<!-- Copy the pre-built Angular output to wwwroot (no rebuild) -->
 		<ItemGroup>
 			<DistFiles Include="$(SpaRoot)$(AngularBuildOutput)**" />
 		</ItemGroup>
+
+		<!-- Copy the Angular build output to wwwroot or other publish folder -->
 		<Copy SourceFiles="@(DistFiles)" DestinationFolder="$(PublishDir)wwwroot\frontend\" />
 	</Target>
-	<!-- END Angular config when publishing release -->
-
 
 	<ItemGroup>
 		<PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.8" />

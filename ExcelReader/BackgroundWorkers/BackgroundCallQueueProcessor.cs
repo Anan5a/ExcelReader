@@ -18,7 +18,7 @@ namespace ExcelReader.BackgroundWorkers
             ICallQueue<QueueModel> callQueue,
             AgentQueue agentQueue,
             IHubContext<SimpleHub> hubContext
-)
+        )
         {
             _customerQueue = callQueue;
             this.agentQueue = agentQueue;
