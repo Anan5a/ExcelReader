@@ -69,7 +69,7 @@ namespace DataAccess
             throw new NotImplementedException("Must implement specific logic in the repository");
         }
 
-        public IEnumerable<T> GetAll(Dictionary<string, dynamic>? condition = null, bool resolveRelation = false)
+        public IEnumerable<T> GetAll(Dictionary<string, dynamic>? condition = null, bool resolveRelation = false, bool lastOnly = false, int n = 10, bool whereConditionUseOR = false)
         {
             throw new NotImplementedException("Must implement specific logic in the repository");
         }

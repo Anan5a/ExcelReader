@@ -7,7 +7,7 @@ namespace IRepository
     {
 
         new long Add(Role user);
-        new IEnumerable<Role> GetAll(Dictionary<string, dynamic>? condition, bool resolveRelation = false);
+        new IEnumerable<Role> GetAll(Dictionary<string, dynamic>? condition, bool resolveRelation = false, bool lastOnly = true, int n = 10, bool whereConditionUseOR = false);
         new Role? Get(Dictionary<string, dynamic> condition, bool resolveRelation = false);
         new Role? Update(Role user);
         int Remove(int id);

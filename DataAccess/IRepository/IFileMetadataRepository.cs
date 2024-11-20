@@ -5,7 +5,7 @@ namespace IRepository
     public interface IFileMetadataRepository : IRepository<FileMetadata>
     {
         new long Add(FileMetadata fileMetadata);
-        new IEnumerable<FileMetadata> GetAll(Dictionary<string, dynamic>? condition, bool resolveRelation = false);
+        new IEnumerable<FileMetadata> GetAll(Dictionary<string, dynamic>? condition, bool resolveRelation = false, bool lastOnly = true, int n = 10, bool whereConditionUseOR = false);
         new FileMetadata? Get(Dictionary<string, dynamic> condition, bool resolveRelation = false);
         new FileMetadata? Update(FileMetadata fileMetadata);
         int Remove(int id);

@@ -1,4 +1,5 @@
-﻿using Google.Apis.Auth;
+﻿using DataAccess.IRepository;
+using Google.Apis.Auth;
 using IRepository;
 using Microsoft.Extensions.Configuration;
 using Models;
@@ -185,8 +186,6 @@ namespace BLL
             condition["id"] = userIds;
 
             return _userRepository.GetAll(condition, resolveRelation: resolveRelation);
-
-
         }
 
         public static bool IsUserAdmin(IUserRepository _userRepository, long userId)
@@ -198,6 +197,18 @@ namespace BLL
         {
             var user = UserBLL.UsersById(_userRepository, new List<long> { userId }).FirstOrDefault();
             return user?.Role?.RoleName != UserRoles.SuperAdmin;
+        }
+
+
+        public static void GetChatHistoryByUserIdAndAgentId(IChatHistoryRepository _chatHistoryRepository, long receiverId, out IEnumerable<ChatHistory> messages, long? senderId = null)
+        {
+            Dictionary<string, dynamic> condition = new Dictionary<string, dynamic>();
+            condition["receiver_id"] = receiverId;
+            if (senderId != null)
+            {
+                condition["sender_id"] = senderId;
+            }
+            messages = _chatHistoryRepository.GetAll(condition, lastOnly: true, n: 10, whereConditionUseOR: true);
         }
 
     }

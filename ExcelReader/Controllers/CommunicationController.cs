@@ -1,6 +1,5 @@
 ﻿using BLL;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
 using Models.DTOs;
@@ -11,7 +10,7 @@ using System.Security.Claims;
 using Utility;
 using IRepository;
 using ExcelReader.Realtime;
-using Microsoft.Extensions.Logging;
+using DataAccess.IRepository;
 
 namespace ExcelReader.Controllers
 {
@@ -21,17 +20,21 @@ namespace ExcelReader.Controllers
     {
         private readonly ChatQueueService _chatQueueService;
         private IUserRepository _userRepository;
+        private IChatHistoryRepository _chatHistoryRepository;
         private IHubContext<SimpleHub> _hubContext;
 
 
         public CommunicationController(
             ChatQueueService chatQueueService,
-             IHubContext<SimpleHub> hubContext,
-            IUserRepository userRepository)
+            IHubContext<SimpleHub> hubContext,
+            IUserRepository userRepository,
+            IChatHistoryRepository chatHistoryRepository
+            )
         {
             _chatQueueService = chatQueueService;
             _hubContext = hubContext;
             _userRepository = userRepository;
+            _chatHistoryRepository = chatHistoryRepository;
         }
         //// Messaging system ////
 
@@ -43,9 +46,6 @@ namespace ExcelReader.Controllers
         {
             long.TryParse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var fromUserId);
             var fromUserRole = User.FindFirst(ClaimTypes.Role)?.Value;
-            //list of connected/online users
-            //get this from the queue
-            //var onlineUsers = SimpleHub.GetConnectedUserList().Where(id => id != fromUserId).ToList();
             var onlineUsers = _chatQueueService.GetQueueUserIds().ToList();
             var userDetails = UserBLL.UsersById(_userRepository, onlineUsers);
 
@@ -54,11 +54,9 @@ namespace ExcelReader.Controllers
             var returnList = from user in userDetails
                              where
                              (
-                                //(fromUserRole == UserRoles.Admin &&
-                                //fromUserRole == UserRoles.SuperAdmin) ||
                                 user?.Role?.RoleName != UserRoles.Admin &&
                                 user?.Role?.RoleName != UserRoles.SuperAdmin
-            )
+                             )
                              select new ChatUserLimitedDTO
                              {
                                  Id = user.Id,
@@ -83,9 +81,20 @@ namespace ExcelReader.Controllers
         {
             long.TryParse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var fromUserId);
 
-
+            //store chat
+            if (_chatHistoryRepository.Add(new()
+            {
+                SenderId = fromUserId,
+                Content = chatSendMessageDTO.Message,
+                CreatedAt = DateTime.UtcNow,
+                ReceiverId = chatSendMessageDTO.To,
+            }) == 0)
+            {
+                //store failed
+                //log
+                ErrorConsole.Log("Failed to store conversation.");
+            }
             //send message to user
-
             await _hubContext.Clients.User(chatSendMessageDTO.To.ToString()).SendAsync("ChatChannel", new ChatChannelMessage
             {
                 Content = chatSendMessageDTO.Message,
@@ -96,9 +105,32 @@ namespace ExcelReader.Controllers
 
         }
 
+        /// <summary>
+        /// Retreives the chat history of a user/customer
+        /// </summary>
+        /// <returns></returns>
+        [HttpGet]
+        [Route("chat-history/{userId?}")]
+        [Authorize(Roles = "user, admin, super_admin")]
+        public async Task<ActionResult<ResponseModel<IEnumerable<ChatHistory>>>> GetChatHistory(long? userId)
+        {
+            long.TryParse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var currentUserId);
+            IEnumerable<ChatHistory> messages;
+            if (isUserAdmin() && userId != null)
+            {
+                //only take into account supplied userId
+                UserBLL.GetChatHistoryByUserIdAndAgentId(_chatHistoryRepository, (long)userId, out messages, userId);
+            }
+            else
+            {
+                UserBLL.GetChatHistoryByUserIdAndAgentId(_chatHistoryRepository, currentUserId, out messages, currentUserId);
+
+            }
+            return Ok(CustomResponseMessage.OkCustom<IEnumerable<ChatHistory>>("Query ok.", messages));
+        }
 
 
-        //one-way to enter the queue
+        //user enter the queue aka. asking for support
         [HttpPost]
         [Route("enter-chat-queue")]
         [Authorize(Roles = "user")]
@@ -191,8 +223,6 @@ namespace ExcelReader.Controllers
             else
             {
                 _chatQueueService.TryRemoveByUserId(userId);
-                //freeing agent on customer action will cause inconsistent and confusing behaviour in the ui
-                //_agentQueue.FreeAgentFromCall(_agentQueue.GetAgentForUser(Convert.ToInt32(userId)).ToString());
 
             }
 

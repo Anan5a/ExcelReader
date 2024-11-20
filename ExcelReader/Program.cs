@@ -10,6 +10,7 @@ using System.Text;
 using System.Text.Json.Serialization;
 using Utility;
 using Services;
+using DataAccess.IRepository;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -36,12 +37,17 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddSingleton<IMyDbConnection>(provider =>
 {
     var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+    if (connectionString == null)
+    {
+        throw new ArgumentNullException(nameof(connectionString));
+    }
     return new MyDbConnection(connectionString);
 });
 
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IFileMetadataRepository, FileMetadataRepository>();
 builder.Services.AddScoped<IRoleRepository, RoleRepository>();
+builder.Services.AddScoped<IChatHistoryRepository, ChatHistoryRepository>();
 builder.Services.AddSingleton<ICallQueue<QueueModel>, CallQueue<QueueModel>>();
 builder.Services.AddSingleton<AgentQueue>();
 builder.Services.AddSingleton<ChatQueueService>();

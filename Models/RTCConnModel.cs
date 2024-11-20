@@ -10,7 +10,7 @@ namespace Models
         [AllowNull]
         public string? TargetUserName { get; set; }
         [Required]
-        public string Data { get; set; }
+        public string? Data { get; set; }
 
     }
 }

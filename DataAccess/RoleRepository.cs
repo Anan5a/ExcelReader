@@ -52,7 +52,7 @@ namespace DataAccess
                 return 0;
             }
         }
-        public new IEnumerable<Role> GetAll(Dictionary<string, dynamic>? condition = null, bool resolveRelation = false)
+        public new IEnumerable<Role> GetAll(Dictionary<string, dynamic>? condition = null, bool resolveRelation = false, bool lastOnly = true, int n = 10, bool whereConditionUseOR = false)
         {
             List<Role> roles = new List<Role>();
 

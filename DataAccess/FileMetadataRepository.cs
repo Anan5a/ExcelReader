@@ -172,7 +172,7 @@ namespace DataAccess
             return fileMetadata;
         }
 
-        public new IEnumerable<FileMetadata> GetAll(Dictionary<string, dynamic>? condition = null, bool resolveRelation = false)
+        public new IEnumerable<FileMetadata> GetAll(Dictionary<string, dynamic>? condition = null, bool resolveRelation = false, bool lastOnly = true, int n = 10, bool whereConditionUseOR = false)
         {
             List<FileMetadata> fileMetadatas = new List<FileMetadata>();
 
