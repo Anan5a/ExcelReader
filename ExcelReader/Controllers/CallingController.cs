@@ -78,7 +78,7 @@ namespace ExcelReader.Controllers
 
 
 
-            await _hubContext.Clients.User(rtcConnRequest.TargetUserId.ToString()).SendAsync("CallingChannel", new CallingChannelMessage
+            await _hubContext.Clients.User(rtcConnRequest.TargetUserId.ToString()).SendAsync("CallingChannel", new AgentChannelMessage<RTCConnModel>
             {
                 CallData = rtcConnRequest.Data,
                 Metadata = new RTCConnModel
@@ -133,7 +133,7 @@ namespace ExcelReader.Controllers
             }
 
 
-            await _hubContext.Clients.User(target.ToString()).SendAsync("CallingChannel", new CallingChannelMessage
+            await _hubContext.Clients.User(target.ToString()).SendAsync("CallingChannel", new AgentChannelMessage<RTCConnModel>
             {
                 CallData = data,
                 Metadata = rtcConnRequest
@@ -171,7 +171,7 @@ namespace ExcelReader.Controllers
 
             var rtcData = rtcConnRequest.Data;
             rtcConnRequest.Data = "";
-            await _hubContext.Clients.User(target).SendAsync("CallingChannel", new CallingChannelMessage
+            await _hubContext.Clients.User(target).SendAsync("CallingChannel", new AgentChannelMessage<RTCConnModel>
             {
                 CallData = rtcData,
                 Metadata = rtcConnRequest
@@ -198,7 +198,7 @@ namespace ExcelReader.Controllers
             rtcConnRequest.TargetUserId = Convert.ToInt32(userId);
             var rtcData = rtcConnRequest.Data;
             rtcConnRequest.Data = "";
-            await _hubContext.Clients.User(target.ToString()).SendAsync("CallingChannel", new CallingChannelMessage
+            await _hubContext.Clients.User(target.ToString()).SendAsync("CallingChannel", new AgentChannelMessage<RTCConnModel>
             {
                 CallData = rtcData,
                 Metadata = rtcConnRequest
@@ -230,7 +230,7 @@ namespace ExcelReader.Controllers
             rtcConnRequest.TargetUserName = userName;
             var rtcData = rtcConnRequest.Data;
             rtcConnRequest.Data = "";
-            await _hubContext.Clients.User(target).SendAsync("CallingChannel", new CallingChannelMessage
+            await _hubContext.Clients.User(target).SendAsync("CallingChannel", new AgentChannelMessage<RTCConnModel>
             {
                 CallData = rtcData,
                 Metadata = rtcConnRequest,

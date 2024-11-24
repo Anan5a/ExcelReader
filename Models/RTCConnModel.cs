@@ -11,6 +11,6 @@ namespace Models
         public string? TargetUserName { get; set; }
         [Required]
         public string? Data { get; set; }
-
+        
     }
 }

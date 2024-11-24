@@ -77,42 +77,44 @@ namespace ExcelReader.Controllers
         [HttpPost]
         [Route("send-message")]
         [Authorize(Roles = "user, admin, super_admin")]
-        public async Task<ActionResult<ResponseModel<object?>>> SendMessage(ChatSendMessageDTO chatSendMessageDTO)
+        public async Task<ActionResult<ResponseModel<long?>>> SendMessage(ChatSendMessageDTO chatSendMessageDTO)
         {
             long.TryParse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var fromUserId);
 
             //store chat
-            if (_chatHistoryRepository.Add(new()
+            var storedChatId = _chatHistoryRepository.Add(new()
             {
                 SenderId = fromUserId,
                 Content = chatSendMessageDTO.Message,
                 CreatedAt = DateTime.UtcNow,
                 ReceiverId = chatSendMessageDTO.To,
-            }) == 0)
+            });
+            if (storedChatId == 0)
             {
                 //store failed
                 //log
                 ErrorConsole.Log("Failed to store conversation.");
             }
             //send message to user
-            await _hubContext.Clients.User(chatSendMessageDTO.To.ToString()).SendAsync("ChatChannel", new ChatChannelMessage
+            await _hubContext.Clients.User(chatSendMessageDTO.To.ToString()).SendAsync("ChatChannel", new List<ChatChannelMessage>{new ChatChannelMessage
             {
                 Content = chatSendMessageDTO.Message,
                 From = fromUserId,
-            });
+                MessageId = storedChatId
+            }});
 
-            return Ok(CustomResponseMessage.OkCustom<string?>("Message sent.", null));
+            return Ok(CustomResponseMessage.OkCustom<long?>("Message sent.", storedChatId));
 
         }
 
         /// <summary>
-        /// Retreives the chat history of a user/customer
+        /// Retreives the chat history of a user/customer, sends the data via webrtc
         /// </summary>
         /// <returns></returns>
         [HttpGet]
         [Route("chat-history/{userId?}")]
         [Authorize(Roles = "user, admin, super_admin")]
-        public async Task<ActionResult<ResponseModel<IEnumerable<ChatHistory>>>> GetChatHistory(long? userId)
+        public async Task<ActionResult<ResponseModel<bool>>> GetChatHistory(long? userId)
         {
             long.TryParse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var currentUserId);
             IEnumerable<ChatHistory> messages;
@@ -124,9 +126,21 @@ namespace ExcelReader.Controllers
             else
             {
                 UserBLL.GetChatHistoryByUserIdAndAgentId(_chatHistoryRepository, currentUserId, out messages, currentUserId);
-
             }
-            return Ok(CustomResponseMessage.OkCustom<IEnumerable<ChatHistory>>("Query ok.", messages));
+
+
+            var transformedMessages = from message in messages
+                                      select new ChatChannelMessage
+                                      {
+                                          Content = message.Content,
+                                          From = message.SenderId,
+                                          MessageId = message.ChatHistoryId,
+                                          SentAt = message.CreatedAt
+                                      };
+
+            await _hubContext.Clients.User(currentUserId.ToString()).SendAsync("ChatChannel", transformedMessages);
+
+            return Ok(CustomResponseMessage.OkCustom<bool>("Query ok.", true));
         }
 
 
@@ -222,8 +236,18 @@ namespace ExcelReader.Controllers
             }
             else
             {
+                var agentIdOfAgentFromUserId = _chatQueueService.GetAgentForUser(Convert.ToInt32(userId), out var _);
                 _chatQueueService.TryRemoveByUserId(userId);
-
+                await _hubContext.Clients.User(agentIdOfAgentFromUserId.ToString()).SendAsync("ChatChannel", new List<ChatChannelMessage>{
+                    new ChatChannelMessage
+                    {
+                        Content = $"{userName} left chat",
+                        From = Convert.ToInt64(userId),
+                        IsSystemMessage = true,
+                        SentAt=DateTime.Now,
+                        MessageId=0
+                    }
+             });
             }
 
 
@@ -255,7 +279,7 @@ namespace ExcelReader.Controllers
             //        TargetUserName = callQueueModel.Username,
             //    }
             //});
-            await _hubContext.Clients.User(agentId).SendAsync("AgentChannel", new CallingChannelMessage
+            await _hubContext.Clients.User(agentId).SendAsync("AgentChannel", new AgentChannelMessage<RTCConnModel>
             {
                 CallData = "",
                 Metadata = new RTCConnModel
@@ -265,13 +289,14 @@ namespace ExcelReader.Controllers
                     TargetUserName = callQueueModel.Username,
                 }
             });
+
         }
 
         // sends agent info to user after an agent is assigned
         private async void RTC_SendSignalToUser(ChatUserLimitedDTO agentInfo, string userId)
         {
             //data fromat==>> <req>:<id>,
-            await _hubContext.Clients.User(userId).SendAsync("AgentChannel", new CallingChannelMessage
+            await _hubContext.Clients.User(userId).SendAsync("AgentChannel", new AgentChannelMessage<RTCConnModel>
             {
                 CallData = "",
                 Metadata = new RTCConnModel
@@ -281,7 +306,14 @@ namespace ExcelReader.Controllers
                     TargetUserName = agentInfo.Name,
                 }
             });
-
+            await _hubContext.Clients.User(userId).SendAsync("ChatChannel", new List<ChatChannelMessage>{ new ChatChannelMessage
+            {
+                Content = $"{agentInfo.Name} joined chat",
+                From = agentInfo.Id,
+                IsSystemMessage = true,
+                SentAt=DateTime.Now,
+                MessageId=0
+            } });
         }
         #endregion
 

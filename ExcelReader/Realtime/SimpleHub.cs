@@ -1,7 +1,11 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
+using Models;
+using Models.DTOs;
+using Models.RealtimeMessage;
 using Services;
 using System.Collections.Concurrent;
+using System.Reflection;
 using System.Security.Claims;
 using Utility;
 
@@ -12,6 +16,7 @@ namespace ExcelReader.Realtime
     {
         private static readonly ConcurrentDictionary<string, string> _userConnections = new();
         private readonly ChatQueueService _chatQueueService;
+        private static string GroupNameKey = "AgentGroup";
 
         public SimpleHub(ChatQueueService chatQueueService)
         {
@@ -27,6 +32,21 @@ namespace ExcelReader.Realtime
             {
                 //add to agent list
                 _chatQueueService.AddNewAgent(userId, userName);
+                JoinAgentGroup();
+            }
+            else
+            {
+                //send message to group of agent
+
+                Clients.Group(GroupNameKey).SendAsync("AgentChannel", new AgentChannelMessage<ChatUserLimitedDTO>
+                {
+                    Metadata = new ChatUserLimitedDTO
+                    {
+                        Id = Convert.ToInt64(userId),
+                        Name = userName
+                    }
+                });
+
             }
 
             return base.OnConnectedAsync();
@@ -38,9 +58,22 @@ namespace ExcelReader.Realtime
             _userConnections.TryRemove(userId, out _);
             if (isUserAdmin())
             {
-                _chatQueueService.TryRemoveByUserId(_chatQueueService.GetUserForAgent(userId.ToString()).ToString());
+                var userIdOfUserFromAgent = _chatQueueService.GetUserForAgent(userId.ToString());
+                _chatQueueService.TryRemoveByUserId(userIdOfUserFromAgent.ToString());
                 _chatQueueService.RemoveAgent(userId);
 
+                ExitAgentGroup();
+                //send notification to user that admin left chat
+                Clients.User(userIdOfUserFromAgent.ToString()).SendAsync("ChatChannel", new List<ChatChannelMessage>{
+                    new ChatChannelMessage
+                    {
+                        Content = "Agent left chat",
+                        From = Convert.ToInt64(userId),
+                        IsSystemMessage = true,
+                        SentAt=DateTime.Now,
+                        MessageId=0
+                    }
+             });
             }
             else
             {
@@ -66,6 +99,17 @@ namespace ExcelReader.Realtime
             var userRole = Context?.User?.Claims
                 .FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
             return userRole == UserRoles.Admin || userRole == UserRoles.SuperAdmin;
+        }
+
+        private async void JoinAgentGroup()
+        {
+            await Groups.AddToGroupAsync(Context.ConnectionId, GroupNameKey);
+
+        }
+        private async void ExitAgentGroup()
+        {
+            await Groups.RemoveFromGroupAsync(Context.ConnectionId, GroupNameKey);
+
         }
     }
 }

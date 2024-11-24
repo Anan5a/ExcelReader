@@ -7,6 +7,8 @@
         public bool WasFileModified { get; set; } = false;
         public bool ShouldRefetch { get; set; } = false;
         public long FileId { get; set; } = 0;
+        public bool? IsSystemMessage { get; set; }
+
         public FileMetadata? FileMetadata { get; set; } = null;
         public FileChannelMessage() { }
     }
