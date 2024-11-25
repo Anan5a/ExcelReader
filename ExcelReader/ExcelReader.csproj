@@ -21,16 +21,15 @@
 		<AngularBuildOutput>dist/dotnet/</AngularBuildOutput>
 	</PropertyGroup>
 
-
+	<Target Name="DeleteDirectory" AfterTargets="Build" Condition="'$(IsDockerBuild)' != 'true'">
+		<!-- cleanup old files -->
+		<RemoveDir Directories="$(PublishDir)wwwroot\frontend\" />
+	</Target>
 	<!-- END Angular config when publishing release -->
 
 	<Target Name="PublishAngular" BeforeTargets="ComputeFilesToPublish" Condition="'$(IsDockerBuild)' != 'true'">
 		<Exec Command="npm install" WorkingDirectory="$(SpaRoot)" />
 		<Exec Command="npm run build:dotnet" WorkingDirectory="$(SpaRoot)" />
-		<!-- cleanup old files -->
-		<RemoveDir Directories="$(PublishDir)wwwroot\frontend\" />
-
-
 		<!-- Copy the pre-built Angular output to wwwroot (no rebuild) -->
 		<ItemGroup>
 			<DistFiles Include="$(SpaRoot)$(AngularBuildOutput)**" />
