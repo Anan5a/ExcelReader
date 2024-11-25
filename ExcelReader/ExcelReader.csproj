@@ -27,6 +27,8 @@
 	<Target Name="PublishAngular" BeforeTargets="ComputeFilesToPublish" Condition="'$(IsDockerBuild)' != 'true'">
 		<Exec Command="npm install" WorkingDirectory="$(SpaRoot)" />
 		<Exec Command="npm run build:dotnet" WorkingDirectory="$(SpaRoot)" />
+		<!-- cleanup old files -->
+		<RemoveDir Directories="$(PublishDir)wwwroot\frontend\" />
 
 
 		<!-- Copy the pre-built Angular output to wwwroot (no rebuild) -->
