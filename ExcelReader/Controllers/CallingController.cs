@@ -80,6 +80,7 @@ namespace ExcelReader.Controllers
 
             await _hubContext.Clients.User(rtcConnRequest.TargetUserId.ToString()).SendAsync("CallingChannel", new AgentChannelMessage<RTCConnModel>
             {
+                ContainsCallData=true,
                 CallData = rtcConnRequest.Data,
                 Metadata = new RTCConnModel
                 {
@@ -135,6 +136,7 @@ namespace ExcelReader.Controllers
 
             await _hubContext.Clients.User(target.ToString()).SendAsync("CallingChannel", new AgentChannelMessage<RTCConnModel>
             {
+                ContainsCallData = true,
                 CallData = data,
                 Metadata = rtcConnRequest
             });
@@ -173,6 +175,7 @@ namespace ExcelReader.Controllers
             rtcConnRequest.Data = "";
             await _hubContext.Clients.User(target).SendAsync("CallingChannel", new AgentChannelMessage<RTCConnModel>
             {
+                ContainsCallData = true,
                 CallData = rtcData,
                 Metadata = rtcConnRequest
             });
@@ -200,6 +203,7 @@ namespace ExcelReader.Controllers
             rtcConnRequest.Data = "";
             await _hubContext.Clients.User(target.ToString()).SendAsync("CallingChannel", new AgentChannelMessage<RTCConnModel>
             {
+                ContainsCallData = true,
                 CallData = rtcData,
                 Metadata = rtcConnRequest
             });
@@ -232,6 +236,7 @@ namespace ExcelReader.Controllers
             rtcConnRequest.Data = "";
             await _hubContext.Clients.User(target).SendAsync("CallingChannel", new AgentChannelMessage<RTCConnModel>
             {
+                ContainsCallData = true,
                 CallData = rtcData,
                 Metadata = rtcConnRequest,
                 Message = "ICE Data from remote"

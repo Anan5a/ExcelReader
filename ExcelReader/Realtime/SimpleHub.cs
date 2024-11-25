@@ -1,11 +1,8 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
-using Models;
-using Models.DTOs;
 using Models.RealtimeMessage;
 using Services;
 using System.Collections.Concurrent;
-using System.Reflection;
 using System.Security.Claims;
 using Utility;
 
@@ -16,7 +13,7 @@ namespace ExcelReader.Realtime
     {
         private static readonly ConcurrentDictionary<string, string> _userConnections = new();
         private readonly ChatQueueService _chatQueueService;
-        private static string GroupNameKey = "AgentGroup";
+        public static string GroupNameKey = "AgentGroup";
 
         public SimpleHub(ChatQueueService chatQueueService)
         {
@@ -33,20 +30,6 @@ namespace ExcelReader.Realtime
                 //add to agent list
                 _chatQueueService.AddNewAgent(userId, userName);
                 JoinAgentGroup();
-            }
-            else
-            {
-                //send message to group of agent
-
-                Clients.Group(GroupNameKey).SendAsync("AgentChannel", new AgentChannelMessage<ChatUserLimitedDTO>
-                {
-                    Metadata = new ChatUserLimitedDTO
-                    {
-                        Id = Convert.ToInt64(userId),
-                        Name = userName
-                    }
-                });
-
             }
 
             return base.OnConnectedAsync();

@@ -169,6 +169,16 @@ namespace ExcelReader.Controllers
                 UserId = userId,
                 Username = userName,
             });
+            //send user info to admin/agent
+            await _hubContext.Clients.Group(SimpleHub.GroupNameKey).SendAsync("AgentChannel", new AgentChannelMessage<ChatUserLimitedDTO>
+            {
+                ContainsUser = true,
+                Metadata = new ChatUserLimitedDTO
+                {
+                    Id = Convert.ToInt64(userId),
+                    Name = userName
+                }
+            });
             //further processing is done in background queue processor
 
             return Ok(CustomResponseMessage.OkCustom("Agent request", true));
@@ -202,7 +212,21 @@ namespace ExcelReader.Controllers
                         Id = Convert.ToInt64(userId),
                         Name = userName,
                     }, assignmentStatus.Value.Item2.UserId);
-
+                    //notify every agent of this 
+                    await _hubContext.Clients.Group(SimpleHub.GroupNameKey).SendAsync("AgentChannel", new AgentChannelMessage<ChatUserLimitedDTO>
+                    {
+                        ContainsUser = true,
+                        Metadata = new ChatUserLimitedDTO
+                        {
+                            Id = Convert.ToInt32(assignmentStatus.Value.Item2.UserId),
+                            Name = assignmentStatus.Value.Item2.Username,
+                            AgentInfo = new()
+                            {
+                                Id = Convert.ToInt64(userId),
+                                Name = userName,
+                            }
+                        }
+                    });
                     return Ok(CustomResponseMessage.OkCustom("Accept user into chat successful", true));
                 }
                 else
@@ -227,29 +251,47 @@ namespace ExcelReader.Controllers
             }
             var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             var userName = User.FindFirst(ClaimTypes.Name)?.Value;
+
+            string recpId;
             //remove user and free agent 
             if (isUserAdmin())
             {
-                _chatQueueService.TryRemoveByUserId(_chatQueueService.GetUserForAgent(userId).ToString());
+                var uid = _chatQueueService.GetUserForAgent(userId).ToString();
+                _chatQueueService.TryRemoveByUserId(uid);
                 _chatQueueService.FreeAgentFromCall(userId);
-
+                recpId = uid;
             }
             else
             {
                 var agentIdOfAgentFromUserId = _chatQueueService.GetAgentForUser(Convert.ToInt32(userId), out var _);
                 _chatQueueService.TryRemoveByUserId(userId);
-                await _hubContext.Clients.User(agentIdOfAgentFromUserId.ToString()).SendAsync("ChatChannel", new List<ChatChannelMessage>{
+                _chatQueueService.FreeAgentFromCall(agentIdOfAgentFromUserId);
+                recpId = agentIdOfAgentFromUserId;
+
+                //notify every agent of this 
+
+
+            }
+            await _hubContext.Clients.User(recpId).SendAsync("ChatChannel", new List<ChatChannelMessage>{
                     new ChatChannelMessage
                     {
+                        EndOfChatMarker=true,
                         Content = $"{userName} left chat",
                         From = Convert.ToInt64(userId),
                         IsSystemMessage = true,
                         SentAt=DateTime.Now,
                         MessageId=0
                     }
-             });
-            }
-
+            });
+            await _hubContext.Clients.Group(SimpleHub.GroupNameKey).SendAsync("AgentChannel", new AgentChannelMessage<ChatUserLimitedDTO>
+            {
+                RemoveUserFromList = true,
+                Metadata = new ChatUserLimitedDTO
+                {
+                    Id = Convert.ToInt64(recpId),
+                    Name = userName
+                }
+            });
 
             return Ok(CustomResponseMessage.OkCustom("Chat exit ok", true));
         }
@@ -269,22 +311,11 @@ namespace ExcelReader.Controllers
 
         private async void RTC_SendSignalToAgent(QueueModel callQueueModel, string agentId)
         {
-            //data fromat==>> <req>:<id>,
-            //await _hubContext.Clients.User(agentId).SendAsync("CallingChannel", new CallingChannelMessage
-            //{
-            //    Metadata = new RTCConnModel
-            //    {
-            //        Data = null,
-            //        TargetUserId = Convert.ToInt32(callQueueModel.UserId),
-            //        TargetUserName = callQueueModel.Username,
-            //    }
-            //});
             await _hubContext.Clients.User(agentId).SendAsync("AgentChannel", new AgentChannelMessage<RTCConnModel>
             {
-                CallData = "",
+                AcceptIntoChat = true,
                 Metadata = new RTCConnModel
                 {
-                    Data = null,
                     TargetUserId = Convert.ToInt32(callQueueModel.UserId),
                     TargetUserName = callQueueModel.Username,
                 }
@@ -298,10 +329,10 @@ namespace ExcelReader.Controllers
             //data fromat==>> <req>:<id>,
             await _hubContext.Clients.User(userId).SendAsync("AgentChannel", new AgentChannelMessage<RTCConnModel>
             {
-                CallData = "",
+
+                AcceptIntoChat = true,
                 Metadata = new RTCConnModel
                 {
-                    Data = null,
                     TargetUserId = Convert.ToInt32(agentInfo.Id),
                     TargetUserName = agentInfo.Name,
                 }

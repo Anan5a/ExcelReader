@@ -1,4 +1,6 @@
-﻿namespace Models.RealtimeMessage
+﻿using System.Text.Json.Serialization;
+
+namespace Models.RealtimeMessage
 {
     public class ChatChannelMessage
     {
@@ -9,6 +11,8 @@
         public string Content { get; set; } = "";
         public bool? IsSystemMessage { get; set; }
         public DateTime SentAt { get; set; } = DateTime.Now;
+        [JsonIgnore(Condition =JsonIgnoreCondition.WhenWritingNull)]
+        public bool? EndOfChatMarker { get; set; }
         public ChatChannelMessage() { }
     }
 }
