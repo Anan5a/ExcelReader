@@ -1,16 +1,16 @@
 using DataAccess;
+using DataAccess.IRepository;
 using ExcelReader.BackgroundWorkers;
-using ExcelReader.Services.Queues;
 using ExcelReader.Realtime;
+using ExcelReader.Services.Queues;
 using IRepository;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Models;
+using Services;
 using System.Text;
 using System.Text.Json.Serialization;
 using Utility;
-using Services;
-using DataAccess.IRepository;
 
 var builder = WebApplication.CreateBuilder(args);
 

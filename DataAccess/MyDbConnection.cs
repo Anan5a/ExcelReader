@@ -6,10 +6,10 @@ using System.Threading.Tasks;
 
 namespace DataAccess
 {
-    public class MyDbConnection:IMyDbConnection
+    public class MyDbConnection : IMyDbConnection
     {
         public string ConnectionString { get; set; }
-        public MyDbConnection(string connectionString) 
+        public MyDbConnection(string connectionString)
         {
             ConnectionString = connectionString;
         }

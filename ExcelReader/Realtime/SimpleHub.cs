@@ -50,6 +50,7 @@ namespace ExcelReader.Realtime
                 Clients.User(userIdOfUserFromAgent.ToString()).SendAsync("ChatChannel", new List<ChatChannelMessage>{
                     new ChatChannelMessage
                     {
+                        EndOfChatMarker=true,
                         Content = "Agent left chat",
                         From = Convert.ToInt64(userId),
                         IsSystemMessage = true,

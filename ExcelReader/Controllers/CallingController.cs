@@ -1,5 +1,5 @@
-﻿using ExcelReader.Services.Queues;
-using ExcelReader.Realtime;
+﻿using ExcelReader.Realtime;
+using ExcelReader.Services.Queues;
 using IRepository;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -80,14 +80,15 @@ namespace ExcelReader.Controllers
 
             await _hubContext.Clients.User(rtcConnRequest.TargetUserId.ToString()).SendAsync("CallingChannel", new AgentChannelMessage<RTCConnModel>
             {
-                ContainsCallData=true,
+                ContainsCallData = true,
                 CallData = rtcConnRequest.Data,
                 Metadata = new RTCConnModel
                 {
                     Data = rtcConnRequest.Data,
                     TargetUserId = Convert.ToInt32(userId),
                     TargetUserName = userName,
-                }
+                },
+                Message = "Call offer from remote"
             });
             //add user call to queue
 
@@ -138,7 +139,8 @@ namespace ExcelReader.Controllers
             {
                 ContainsCallData = true,
                 CallData = data,
-                Metadata = rtcConnRequest
+                Metadata = rtcConnRequest,
+                Message = "Call answer from remote"
             });
             return Ok(CustomResponseMessage.OkCustom("Call Offer answer sent", true));
 
@@ -177,7 +179,8 @@ namespace ExcelReader.Controllers
             {
                 ContainsCallData = true,
                 CallData = rtcData,
-                Metadata = rtcConnRequest
+                Metadata = rtcConnRequest,
+                Message = "RTC offer from remote"
             });
             return Ok(CustomResponseMessage.OkCustom("RTC Offer sent", true));
 
@@ -205,7 +208,8 @@ namespace ExcelReader.Controllers
             {
                 ContainsCallData = true,
                 CallData = rtcData,
-                Metadata = rtcConnRequest
+                Metadata = rtcConnRequest,
+                Message = "RTC answer from remote"
             });
             return Ok(CustomResponseMessage.OkCustom("RTC Answer sent", true));
         }
@@ -234,6 +238,7 @@ namespace ExcelReader.Controllers
             rtcConnRequest.TargetUserName = userName;
             var rtcData = rtcConnRequest.Data;
             rtcConnRequest.Data = "";
+            //ErrorConsole.Log($"ICE:: {userId} --> {target}");
             await _hubContext.Clients.User(target).SendAsync("CallingChannel", new AgentChannelMessage<RTCConnModel>
             {
                 ContainsCallData = true,

@@ -11,7 +11,7 @@ namespace Models.RealtimeMessage
         public string Content { get; set; } = "";
         public bool? IsSystemMessage { get; set; }
         public DateTime SentAt { get; set; } = DateTime.Now;
-        [JsonIgnore(Condition =JsonIgnoreCondition.WhenWritingNull)]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public bool? EndOfChatMarker { get; set; }
         public ChatChannelMessage() { }
     }

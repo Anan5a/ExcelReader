@@ -1,5 +1,5 @@
-﻿using ExcelReader.Services.Queues;
-using ExcelReader.Realtime;
+﻿using ExcelReader.Realtime;
+using ExcelReader.Services.Queues;
 using Microsoft.AspNetCore.SignalR;
 using Models;
 using Models.DTOs;
