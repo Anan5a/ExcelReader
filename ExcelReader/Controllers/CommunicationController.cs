@@ -1,5 +1,6 @@
 ﻿using BLL;
 using DataAccess.IRepository;
+using DocumentFormat.OpenXml.Office2016.Drawing.ChartDrawing;
 using ExcelReader.Realtime;
 using IRepository;
 using Microsoft.AspNetCore.Authorization;
@@ -134,6 +135,7 @@ namespace ExcelReader.Controllers
                                       {
                                           Content = message.Content,
                                           From = message.SenderId,
+
                                           MessageId = message.ChatHistoryId,
                                           SentAt = message.CreatedAt
                                       };
@@ -169,7 +171,7 @@ namespace ExcelReader.Controllers
                 UserId = userId,
                 Username = userName,
             });
-            //send user info to admin/agent
+            //send user info to all admin/agent
             await _hubContext.Clients.Group(SimpleHub.GroupNameKey).SendAsync("AgentChannel", new AgentChannelMessage<ChatUserLimitedDTO>
             {
                 ContainsUser = true,
@@ -236,6 +238,75 @@ namespace ExcelReader.Controllers
                 }
             }
             return Ok(CustomResponseMessage.OkCustom("Accept user into chat failed", false));
+        }
+
+
+        /// <summary>
+        /// Transfers an ongoing chat to a different agent dynamically
+        /// </summary>
+        /// <param name="chatUserIdOnlyDTO"></param>
+        /// <returns></returns>
+        [HttpPost]
+        [Route("transfer-chat")]
+        [Authorize(Roles = "admin, super_admin")]
+
+        public async Task<ActionResult<ResponseModel<bool>>> TransferChat([FromBody] ChatUserIdOnlyDTO chatUserIdOnlyDTO)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest();
+            }
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var userName = User.FindFirst(ClaimTypes.Name)?.Value;
+            string recpId;
+
+
+            // first close chat, then make the user available for pickup again
+            var uid = _chatQueueService.GetUserForAgent(userId).ToString();
+            _chatQueueService.TryRemoveByUserId(uid);
+            _chatQueueService.FreeAgentFromCall(userId);
+            recpId = uid;
+
+            //notify user that they are being transferred 
+            await _hubContext.Clients.User(recpId).SendAsync("ChatChannel", new List<ChatChannelMessage>{
+                    new ChatChannelMessage
+                    {
+                        Content = $"Chat is being transferred. Please wait.",
+                        From = Convert.ToInt64(userId),
+                        IsSystemMessage = true,
+                        SentAt=DateTime.Now,
+                        MessageId=0
+                    }
+            });
+            //notify current agent to remove themselve from chat
+            var userFromrecpId = UserBLL.UsersById(_userRepository, new List<long> { Convert.ToInt64(recpId) }).FirstOrDefault();
+            await _hubContext.Clients.User(userId).SendAsync("AgentChannel", new AgentChannelMessage<ChatUserLimitedDTO>
+            {
+                RemoveUserFromList = true,
+                Metadata = new ChatUserLimitedDTO
+                {
+                    Id = Convert.ToInt64(recpId),
+                    Name = userFromrecpId?.Name,
+                }
+            });
+            _chatQueueService.Enqueue(new QueueModel
+            {
+                EntryTime = DateTime.Now,
+                UserId = recpId,
+                Username = userFromrecpId?.Name,
+            });
+            //send user info to all admin/agent
+            await _hubContext.Clients.Group(SimpleHub.GroupNameKey).SendAsync("AgentChannel", new AgentChannelMessage<ChatUserLimitedDTO>
+            {
+                ContainsUser = true,
+                Metadata = new ChatUserLimitedDTO
+                {
+                    Id = Convert.ToInt64(recpId),
+                    Name = userFromrecpId?.Name,
+                }
+            });
+            //try to assign user to agent
+            return Ok(CustomResponseMessage.OkCustom("Transfer chat request successful", true));
         }
 
 
