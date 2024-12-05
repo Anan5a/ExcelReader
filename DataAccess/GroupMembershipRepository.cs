@@ -1,26 +1,22 @@
-﻿using IRepository;
+﻿using DataAccess.IRepository;
 using Microsoft.Data.SqlClient;
 using Models;
 using Services;
+using System;
+using System.Collections.Generic;
 using System.Data;
+using System.Linq;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace DataAccess
 {
-    public class FileMetadataRepository : Repository<FileMetadata>, IFileMetadataRepository
+    public class GroupMembershipRepository : Repository<GroupMembershipModel>, IGroupMembershipRepository
     {
-        private readonly string tableName = "file_metadata";
+        private readonly string tableName = "group_memberships";
 
-        public FileMetadataRepository(IMyDbConnection dbConnection) : base(dbConnection) { }
-        public int Remove(int id)
-        {
-            return Remove(tableName, "file_metadata_id", id);
-        }
+        public GroupMembershipRepository(IMyDbConnection myDbConnection) : base(myDbConnection) { }
 
-        public int RemoveRange(List<int> Ids)
-        {
-            return RemoveRange(tableName, "file_metadata_id", Ids);
-        }
 
         public new long Add(FileMetadata fileMetadata)
         {
@@ -331,11 +327,18 @@ namespace DataAccess
             return fileMetadata;
         }
 
+
+        public int Remove(int Id)
+        {
+            return base.Remove(tableName, "group_membership_id", Id);
+        }
+        public int RemoveRange(List<int> Ids)
+        {
+            return base.RemoveRange(tableName, "group_membership_id", Ids);
+        }
         public long Count(Dictionary<string, dynamic>? condition = null)
         {
             return Count(tableName, condition);
         }
     }
-
-
 }

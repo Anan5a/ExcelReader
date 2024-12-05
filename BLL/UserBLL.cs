@@ -173,8 +173,8 @@ namespace BLL
             {
                 return BLLReturnEnum.ACTION_ERROR;
             }
-            user.Id = Convert.ToInt64(createStatus);
-            user.Role = new Role { Id = 1, RoleName = "user" };
+            user.UserId = Convert.ToInt64(createStatus);
+            user.Role = new Role { RoleId = 1, RoleName = "user" };
 
             var token2 = JwtAuthService.GenerateJwtToken(user, _configuration);
             return new AuthResponse { Token = token2, user = user };

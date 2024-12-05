@@ -17,11 +17,11 @@ namespace DataAccess
 
         public int Remove(int Id)
         {
-            return base.Remove(tableName, "id", Id);
+            return base.Remove(tableName, "role_id", Id);
         }
         public int RemoveRange(List<int> Ids)
         {
-            return base.RemoveRange(tableName, "id", Ids);
+            return base.RemoveRange(tableName, "role_id", Ids);
         }
         public new long Add(Role role)
         {
@@ -91,14 +91,14 @@ namespace DataAccess
                     {
 
                         query = $@"
-                SELECT r.[id] as Id, 
+                SELECT r.[role_id] as Id, 
                        r.[role_name] as RoleName
                 FROM [{tableName}] r";
                     }
                     else
                     {
                         query = $@"
-                SELECT r.[id] as Id, 
+                SELECT r.[role_id] as Id, 
                        r.[role_name] as RoleName
                 FROM [{tableName}] r";
                     }
@@ -121,7 +121,7 @@ namespace DataAccess
                             {
                                 Role role = new Role
                                 {
-                                    Id = Convert.ToInt64(row["Id"]),
+                                    RoleId = Convert.ToInt64(row["Id"]),
                                     RoleName = Convert.ToString(row["RoleName"]),
                                 };
 
@@ -173,7 +173,7 @@ namespace DataAccess
                     if (resolveRelation)
                     {
                         query = $@"
-                SELECT r.[id] as Id, 
+                SELECT r.[role_id] as Id, 
                        r.[role_name] as RoleName
                 FROM [{tableName}] r
                 WHERE " + whereClause;
@@ -181,7 +181,7 @@ namespace DataAccess
                     else
                     {
                         query = $@"
-                SELECT r.[id] as Id, 
+                SELECT r.[role_id] as Id, 
                        r.[role_name] as RoleName
                 FROM [{tableName}] r
                 WHERE " + whereClause;
@@ -197,7 +197,7 @@ namespace DataAccess
                             {
                                 role = new Role
                                 {
-                                    Id = Convert.ToInt64(reader["Id"]),
+                                    RoleId = Convert.ToInt64(reader["Id"]),
                                     RoleName = Convert.ToString(reader["RoleName"]),
                                 };
                             }
@@ -221,12 +221,12 @@ namespace DataAccess
                     string query = $@"
                     UPDATE [{tableName}]
                     SET [role_name] = @RoleName 
-                    WHERE [id] = @Id";
+                    WHERE [role_id] = @Id";
 
                     using (SqlCommand command = new SqlCommand(query, connection))
                     {
                         command.Parameters.AddWithValue("@RoleName", existingRole.RoleName);
-                        command.Parameters.AddWithValue("@Id", existingRole.Id);
+                        command.Parameters.AddWithValue("@Id", existingRole.RoleId);
 
                         int rowsAffected = command.ExecuteNonQuery();
 

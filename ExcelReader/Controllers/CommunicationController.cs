@@ -60,9 +60,9 @@ namespace ExcelReader.Controllers
                              )
                              select new ChatUserLimitedDTO
                              {
-                                 Id = user.Id,
+                                 Id = user.UserId,
                                  Name = user.Name,
-                                 AgentInfo = int.TryParse(_chatQueueService.GetAgentForUser(Convert.ToInt32(user.Id), out var agentName), out var agentId)
+                                 AgentInfo = int.TryParse(_chatQueueService.GetAgentForUser(Convert.ToInt32(user.UserId), out var agentName), out var agentId)
                                                              ? new()
                                                              {
                                                                  Id = agentId,

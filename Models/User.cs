@@ -9,7 +9,7 @@ namespace Models
     {
         [Key]
         [BindNever]
-        public long Id { get; set; }
+        public long UserId { get; set; }
 
         [Required]
         [MaxLength(255)]
@@ -63,7 +63,7 @@ namespace Models
                     DateTime? updatedAt, DateTime? deletedAt, long roleId, string passwordResetId,
                     DateTime? verifiedAt, string status, Role? role, object? socialLogin)
         {
-            Id = id;
+            UserId = id;
             Name = name;
             Email = email;
             Password = password;

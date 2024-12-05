@@ -19,11 +19,11 @@ namespace DataAccess
 
         public int Remove(int Id)
         {
-            return base.Remove(tableName, "id", Id);
+            return base.Remove(tableName, "user_id", Id);
         }
         public int RemoveRange(List<int> Ids)
         {
-            return base.RemoveRange(tableName, "id", Ids);
+            return base.RemoveRange(tableName, "user_id", Ids);
         }
         public new long Add(User user)
         {
@@ -136,7 +136,7 @@ namespace DataAccess
                     {
 
                         query = $@"
-                SELECT u.[id], 
+                SELECT u.[user_id], 
                        u.[name], 
                        u.[email], 
                        u.[password] , 
@@ -150,12 +150,12 @@ namespace DataAccess
                        u.[social_login] ,
                        r.[role_name] 
                 FROM [{tableName}] u
-                INNER JOIN [roles] r ON u.[role_id] = r.[id]";
+                INNER JOIN [roles] r ON u.[role_id] = r.[role_id]";
                     }
                     else
                     {
                         query = $@"
-                SELECT u.[id] , 
+                SELECT u.[user_id] , 
                        u.[name] , 
                        u.[email] , 
                        u.[password] , 
@@ -188,7 +188,7 @@ namespace DataAccess
                             {
                                 User user = new User
                                 {
-                                    Id = Convert.ToInt64(row["id"]),
+                                    UserId = Convert.ToInt64(row["user_id"]),
                                     Name = Convert.ToString(row["name"]),
                                     Email = Convert.ToString(row["email"]),
                                     Password = Convert.ToString(row["password"]),
@@ -206,7 +206,7 @@ namespace DataAccess
                                 {
                                     user.Role = new Role
                                     {
-                                        Id = user.RoleId,
+                                        RoleId = user.RoleId,
                                         RoleName = Convert.ToString(row["role_name"]),
                                     };
                                 }
@@ -254,7 +254,7 @@ namespace DataAccess
                     if (resolveRelation)
                     {
                         query = $@"
-                SELECT u.[id] , 
+                SELECT u.[user_id] , 
                         u.[name], 
                        u.[email], 
                        u.[password] , 
@@ -268,13 +268,13 @@ namespace DataAccess
                        u.[social_login],
                        r.[role_name] 
                 FROM [{tableName}] u
-                INNER JOIN [roles] r ON u.[role_id] = r.[id]
+                INNER JOIN [roles] r ON u.[role_id] = r.[role_id]
                 WHERE " + whereClause;
                     }
                     else
                     {
                         query = $@"
-                SELECT u.[id] , 
+                SELECT u.[user_id] , 
                         u.[name], 
                        u.[email], 
                        u.[password] , 
@@ -300,7 +300,7 @@ namespace DataAccess
                             {
                                 user = new User
                                 {
-                                    Id = Convert.ToInt64(reader["id"]),
+                                    UserId = Convert.ToInt64(reader["user_id"]),
                                     Name = Convert.ToString(reader["name"]),
                                     Email = Convert.ToString(reader["email"]),
                                     Password = Convert.ToString(reader["password"]),
@@ -319,7 +319,7 @@ namespace DataAccess
                                 {
                                     user.Role = new Role
                                     {
-                                        Id = user.RoleId,
+                                        RoleId = user.RoleId,
                                         RoleName = Convert.ToString(reader["role_name"]),
                                     };
                                 }
@@ -353,7 +353,7 @@ namespace DataAccess
                         [verified_at] = @VerifiedAt, 
                         [status] = @Status,
                         [social_login] = @SocialLogin
-                    WHERE [id] = @Id";
+                    WHERE [user_id] = @Id";
 
                     using (SqlCommand command = new SqlCommand(query, connection))
                     {
@@ -367,7 +367,7 @@ namespace DataAccess
                         command.Parameters.AddWithValue("@VerifiedAt", existingUser.VerifiedAt ?? (object)DBNull.Value);
                         command.Parameters.AddWithValue("@Status", existingUser.Status ?? (object)DBNull.Value);
                         command.Parameters.AddWithValue("@SocialLogin", existingUser.SocialLogin == null ? (object)DBNull.Value : JsonSerializer.Serialize(existingUser.SocialLogin));
-                        command.Parameters.AddWithValue("@Id", existingUser.Id);
+                        command.Parameters.AddWithValue("@Id", existingUser.UserId);
 
                         int rowsAffected = command.ExecuteNonQuery();
 

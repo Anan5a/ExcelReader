@@ -36,7 +36,7 @@ namespace BLL
 
             }
 
-            if (assignableRoles.FirstOrDefault(role => role.Id == adminNewUserDto.RoleId, null) == null)
+            if (assignableRoles.FirstOrDefault(role => role.RoleId == adminNewUserDto.RoleId, null) == null)
             {
                 //invalid role was provided :/
                 return BLLReturnEnum.Admin_ADMIN_CREATE_USER_INVALID_ROLE;

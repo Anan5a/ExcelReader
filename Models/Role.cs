@@ -6,7 +6,7 @@ namespace Models
     public class Role
     {
         [BindNever]
-        public long Id { get; set; }
+        public long RoleId { get; set; }
 
         [Required]
         [MaxLength(20)]
@@ -19,7 +19,7 @@ namespace Models
         // Parameterized constructor
         public Role(long id, string roleName)
         {
-            Id = id;
+            RoleId = id;
             RoleName = roleName;
         }
     }

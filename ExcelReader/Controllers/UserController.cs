@@ -48,7 +48,7 @@ namespace ExcelReader.Controllers
 
             var users = _userRepository.GetAll(null, resolveRelation: true);
             //we don't want to return the currently logged in user
-            var filtered = users.Where(user => user.Id != userId);
+            var filtered = users.Where(user => user.UserId != userId);
             return Ok(CustomResponseMessage.OkCustom<IEnumerable<User>>("Successful query", users));
         }
 
