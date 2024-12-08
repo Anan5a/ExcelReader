@@ -151,7 +151,7 @@ namespace DataAccess
                             {
                                 fileMetadata = new FileMetadata
                                 {
-                                    Id = Convert.ToInt64(reader["file_metadata_id"]),
+                                    FileMetadataId = Convert.ToInt64(reader["file_metadata_id"]),
                                     FileName = Convert.ToString(reader["file_name"]),
                                     FileNameSystem = Convert.ToString(reader["file_name_system"]),
                                     UserId = Convert.ToInt64(reader["user_id"]),
@@ -253,7 +253,7 @@ namespace DataAccess
                             {
                                 FileMetadata fileMetadata = new FileMetadata
                                 {
-                                    Id = Convert.ToInt64(row["file_metadata_id"]),
+                                    FileMetadataId = Convert.ToInt64(row["file_metadata_id"]),
                                     FileName = Convert.ToString(row["file_name"]),
                                     FileNameSystem = Convert.ToString(row["file_name_system"]),
                                     UserId = Convert.ToInt64(row["user_id"]),
@@ -300,7 +300,7 @@ namespace DataAccess
                 [user_id] = @UserId, 
                 [updated_at] = @UpdatedAt, 
                 [deleted_at] = @DeletedAt
-            WHERE [id] = @Id";
+            WHERE [file_metadata_id] = @Id";
 
                     using (SqlCommand command = new SqlCommand(query, connection))
                     {
@@ -310,7 +310,7 @@ namespace DataAccess
                         //command.Parameters.AddWithValue("@CreatedAt", fileMetadata.CreatedAt);
                         command.Parameters.AddWithValue("@UpdatedAt", fileMetadata.UpdatedAt ?? (object)DBNull.Value);
                         command.Parameters.AddWithValue("@DeletedAt", fileMetadata.DeletedAt ?? (object)DBNull.Value);
-                        command.Parameters.AddWithValue("@Id", fileMetadata.Id);
+                        command.Parameters.AddWithValue("@Id", fileMetadata.FileMetadataId);
 
                         int rowsAffected = command.ExecuteNonQuery();
 

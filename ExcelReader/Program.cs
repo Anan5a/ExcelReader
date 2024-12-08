@@ -46,6 +46,8 @@ builder.Services.AddSingleton<IMyDbConnection>(provider =>
 
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IFileMetadataRepository, FileMetadataRepository>();
+builder.Services.AddScoped<IGroupRepository, GroupRepository>();
+builder.Services.AddScoped<IGroupMembershipRepository, GroupMembershipRepository>();
 builder.Services.AddScoped<IRoleRepository, RoleRepository>();
 builder.Services.AddScoped<IChatHistoryRepository, ChatHistoryRepository>();
 builder.Services.AddSingleton<ICallQueue<QueueModel>, CallQueue<QueueModel>>();

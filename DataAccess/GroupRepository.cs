@@ -134,11 +134,12 @@ namespace DataAccess
         }
 
         public new IEnumerable<GroupModel> GetAll(
-     Dictionary<string, dynamic>? condition = null,
-     int n = 10,
-     bool resolveRelation = false,
-     bool whereConditionUseOR = false
-            )
+             Dictionary<string, dynamic>? condition = null,
+             bool lastOnly=false,
+             bool resolveRelation = false,
+             int n = 10,
+             bool whereConditionUseOR = false
+        )
         {
             List<GroupModel> groups = new List<GroupModel>();
 
@@ -416,6 +417,7 @@ namespace DataAccess
                     {
                         command.Parameters.AddWithValue("@GroupName", groupModel.GroupName ?? (object)DBNull.Value);
                         command.Parameters.AddWithValue("@DeletedAt", groupModel.DeletedAt ?? (object)DBNull.Value);
+                        command.Parameters.AddWithValue("@UpdatedAt", groupModel.UpdatedAt ?? (object)DBNull.Value);
                         command.Parameters.AddWithValue("@Id", groupModel.GroupId);
 
                         int rowsAffected = command.ExecuteNonQuery();

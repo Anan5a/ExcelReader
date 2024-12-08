@@ -84,7 +84,7 @@ namespace BLL
 
             if (fileId != 0)
             {
-                fileMetadata.Id = Convert.ToInt64(fileId);
+                fileMetadata.FileMetadataId = Convert.ToInt64(fileId);
                 uploadedFile = fileMetadata;
                 return BLLReturnEnum.ACTION_OK;
             }
@@ -107,12 +107,12 @@ namespace BLL
 
             Dictionary<string, dynamic> condition = new Dictionary<string, dynamic>();
             //condition["user_id"] = userId;
-            condition["id"] = editFileDto.fileId;
+            condition["file_metadata_id"] = editFileDto.fileId;
 
             var existingFile = _fileMetadataRepository.Get(condition);
             fileMetadata = null;
 
-            if (existingFile.UserId != userId && !UserBLL.IsUserAdmin(_userRepository, userId))
+            if (existingFile !=null && existingFile.UserId != userId && !UserBLL.IsUserAdmin(_userRepository, userId))
             {
                 //not owner or admin
                 return BLLReturnEnum.File_FILE_IS_EMPTY;
@@ -144,7 +144,7 @@ namespace BLL
         {
 
             Dictionary<string, dynamic> condition = new Dictionary<string, dynamic>();
-            condition["id"] = fileId;
+            condition["file_metadata_id"] = fileId;
 
             if (!UserBLL.IsUserAdmin(_userRepository, userId))
             {

@@ -1,4 +1,5 @@
-﻿using IRepository;
+﻿using DataAccess.IRepository;
+using IRepository;
 using Models;
 using Models.DTOs;
 using Utility;
@@ -72,7 +73,7 @@ namespace BLL
         private static IEnumerable<Role> GetAssignableRoles(IUserRepository _userRepository, IRoleRepository _roleRepository, long userId)
         {
             Dictionary<string, dynamic> condition = new Dictionary<string, dynamic>();
-            condition["id"] = userId;
+            condition["user_id"] = userId;
 
             var user = _userRepository.Get(condition, resolveRelation: true);
 
@@ -90,6 +91,54 @@ namespace BLL
 
             }
             return assignableRoles;
+        }
+
+
+        /// Groups
+        /// 
+        public static BLLReturnEnum CreateGroup(IGroupRepository _groupRepository, CreateGroupDTO createGroupDTO)
+        {
+            GroupModel groupModel = new GroupModel
+            {
+                GroupName = createGroupDTO.GroupName,
+                CreatedAt = DateTime.Now,
+                UpdatedAt = null,
+                DeletedAt = null,
+            };
+            var createStatus = _groupRepository.Add(groupModel);
+
+            if (createStatus == 0)
+            {
+                return BLLReturnEnum.Group_GROUP_NO_GROUP_CREATED;
+            }
+
+            return BLLReturnEnum.ACTION_OK;
+
+        }
+        public static BLLReturnEnum CreateGroupMembership(IGroupMembershipRepository _groupMembershipRepository, CreateGroupMembershipDTO createGroupMembershipDTO)
+        {
+            GroupMembershipModel groupMembershipModel = new()
+            {
+                GroupId = createGroupMembershipDTO.GroupId,
+                UserId = createGroupMembershipDTO.UserId,
+                CreatedAt = DateTime.Now,
+            };
+            var createStatus = _groupMembershipRepository.Add(groupMembershipModel);
+
+            if (createStatus == 0)
+            {
+                return BLLReturnEnum.Group_GROUP_NO_MEMBERSHIP_CREATED;
+            }
+
+            return BLLReturnEnum.ACTION_OK;
+
+        }
+
+        public static IEnumerable<GroupModel> ListGroups(IGroupRepository _groupRepository, string? page)
+        {
+            Dictionary<string, dynamic> condition = new Dictionary<string, dynamic>();
+            var list = _groupRepository.GetAll(condition, resolveRelation: false);
+            return list;
         }
 
     }

@@ -29,7 +29,7 @@ namespace BLL
 
             //find user and user files
             Dictionary<string, dynamic> condition = new Dictionary<string, dynamic>();
-            condition["id"] = userId;
+            condition["user_id"] = userId;
 
             var user = _userRepository.Get(condition);
 
@@ -183,7 +183,7 @@ namespace BLL
         public static IEnumerable<User> UsersById(IUserRepository _userRepository, IEnumerable<long> userIds, bool resolveRelation = true)
         {
             Dictionary<string, dynamic> condition = new Dictionary<string, dynamic>();
-            condition["id"] = userIds;
+            condition["user_id"] = userIds;
 
             return _userRepository.GetAll(condition, resolveRelation: resolveRelation);
         }

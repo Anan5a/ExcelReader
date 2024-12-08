@@ -80,7 +80,6 @@ namespace ExcelReader.Controllers
         }
 
         [HttpGet]
-        [Authorize(Roles = "admin, super_admin")]
         [Route("user-info/{userId}")]
         public async Task<ActionResult<ResponseModel<User?>>> UserInfo(Int32 userId)
         {

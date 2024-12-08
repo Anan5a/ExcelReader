@@ -7,7 +7,7 @@ namespace Models
     {
         [Key]
         [BindNever]
-        public long Id { get; set; }
+        public long FileMetadataId { get; set; }
 
         [Required]
         [MaxLength(32)]
@@ -44,7 +44,7 @@ namespace Models
                             DateTime createdAt, DateTime? updatedAt, DateTime? deletedAt,
                             User user, Role role, long fsb)
         {
-            Id = id;
+            FileMetadataId = id;
             FileName = fileName;
             FileNameSystem = fileNameSystem;
             UserId = fileOwner;

@@ -107,7 +107,7 @@ namespace ExcelReader.Controllers
                 case BLLReturnEnum.ACTION_OK:
                     await _hubContext.Clients.Clients(userId.ToString()).SendAsync("FileChannel", new FileChannelMessage
                     {
-                        FileId = uploadedFile.Id,
+                        FileId = uploadedFile.FileMetadataId,
                         WasFileModified = false,
                         ShouldRefetch = false,
                         FileMetadata = uploadedFile,
@@ -185,7 +185,7 @@ namespace ExcelReader.Controllers
             var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
 
             Dictionary<string, dynamic> condition = new Dictionary<string, dynamic>();
-            condition["id"] = exportRequestDTO.FileId;
+            condition["file_metadata_id"] = exportRequestDTO.FileId;
             if (userRole != UserRoles.Admin && userRole != UserRoles.SuperAdmin)
             {
                 condition["user_id"] = userId;
@@ -305,7 +305,7 @@ namespace ExcelReader.Controllers
 
             await _hubContext.Clients.Clients(toIds).SendAsync("FileChannel", new FileChannelMessage
             {
-                FileId = fileToDelete.Id,
+                FileId = fileToDelete.FileMetadataId,
                 WasFileModified = false,
                 ShouldRefetch = false,
                 FileMetadata = null,

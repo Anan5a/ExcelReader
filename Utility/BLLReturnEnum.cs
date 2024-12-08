@@ -32,6 +32,13 @@
         File_FILE_NOT_FOUND,
         File_FILE_EDIT_NOT_PERMITTED,
 
+        /// <summary>
+        /// Group related values
+        /// </summary>
+        Group_GROUP_NOT_FOUND,
+        Group_GROUP_ALREADY_EXISTS,
+        Group_GROUP_NO_GROUP_CREATED,
+        Group_GROUP_NO_MEMBERSHIP_CREATED,
 
     }
 }
